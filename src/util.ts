@@ -1,1 +1,1 @@
-export const replacer = (_key: any, value: any) => typeof value === 'bigint' ? value.toString() : value;
+export const replacer = (_key: any, value: any) => typeof value === "bigint" ? value.toString() : value;
