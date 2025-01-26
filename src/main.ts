@@ -3,9 +3,18 @@ import "jsr:@std/dotenv/load";
 
 import { createChainSynchronizationClient } from "./client/client.ts";
 import { createInteractionContext } from "./client/connection.ts";
-import { replacer } from "./util.ts";
 import { classify } from "./classify.ts";
-import { createListing } from "./db/db.ts";
+import { createListing, createSale } from "./db/db.ts";
+
+const OFFERSV2_CONTRACT_CREATED = {
+    id: "61e3c0e80a3ffbdf4a1c5e66c6a0b26283a1a237910528bfe3686d24c103fef7",
+    slot: 87897855
+}
+
+const ARB_TIME = {
+    id: "e46f05f1bf7d46de6e29344b6ffea30a7cd72ea594f569b06f9a43d016d8fba9",
+    slot: 145896722
+}
 
 export const createContext = () =>
     createInteractionContext(
@@ -30,11 +39,14 @@ const rollForward = async (
 
     const info = await classify(block);
 
-    if (info.listings) {
-        for (const l of info.listings) {
-            await createListing(l);
-            console.log("created listing:", l.amount, l.assetName)
-        }
+    for (const l of info.listings) {
+        await createListing(l);
+        console.log("created listing:", l.amount, l.assetName);
+    }
+
+    for (const s of info.sales) {
+        await createSale(s);
+        console.log("created sale:", s.amount, s.assetName, s.seller, s.buyer);
     }
 
     requestNextBlock();
@@ -51,10 +63,7 @@ export async function runExample() {
         rollForward,
         rollBackward,
     });
-    await client.resume([{
-        id: "61e3c0e80a3ffbdf4a1c5e66c6a0b26283a1a237910528bfe3686d24c103fef7",
-        slot: 87897855,
-    }]);
+    await client.resume([OFFERSV2_CONTRACT_CREATED]);
 }
 
 runExample();

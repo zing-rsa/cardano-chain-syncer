@@ -1,6 +1,7 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
-import { Listing, listings, NewListing } from "./schema.ts";
+import { Listing, listings, NewListing, NewSale, Sale, sales } from "./schema.ts";
+import { eq } from "drizzle-orm/expressions";
 const { Pool } = pg;
 
 export const db = drizzle({
@@ -17,5 +18,15 @@ export const db = drizzle({
 
 export async function createListing(listing: NewListing): Promise<Listing> {
     const res = await db.insert(listings).values(listing)
+    return res;
+}
+
+export async function listingByUtxo(utxoId: string): Promise<Listing | undefined> {
+    const res = await db.select().from(listings).where(eq(listings.utxoId, utxoId))
+    return res[0];
+}
+
+export async function createSale(sale: NewSale): Promise<Sale> {
+    const res = await db.insert(sales).values(sale)
     return res;
 }

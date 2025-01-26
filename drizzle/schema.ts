@@ -7,8 +7,23 @@ export const listings = pgTable("listings", {
     assetNameHex: varchar().notNull(),
     onchainAssetName: varchar().notNull(),
     txHash: varchar().notNull(),
-    createdAt: timestamp().notNull(),
+    timestamp: timestamp().notNull(),
     owner: varchar().notNull(),
     utxoId: varchar().notNull(),
     blockId: varchar().notNull()
 });
+
+export const sales = pgTable("sales", {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    amount: numeric().notNull(),
+    assetName: varchar().notNull(),
+    assetNameHex: varchar().notNull(),
+    onchainAssetName: varchar().notNull(),
+    txHash: varchar().notNull(),
+    timestamp: timestamp().notNull(),
+    buyer: varchar().notNull(),
+    seller: varchar().notNull(),
+    utxoId: varchar().notNull(),
+    blockId: varchar().notNull()
+});
+
