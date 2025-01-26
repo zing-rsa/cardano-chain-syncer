@@ -5,6 +5,7 @@ import { createChainSynchronizationClient } from "./client/client.ts";
 import { createInteractionContext } from "./client/connection.ts";
 import { replacer } from "./util.ts";
 import { classify } from "./classify.ts";
+import { createListing } from "./db/db.ts";
 
 export const createContext = () =>
     createInteractionContext(
@@ -31,7 +32,8 @@ const rollForward = async (
 
     if (info.listings) {
         for (const l of info.listings) {
-            console.log('found listing!', l.amount, l.assetName, l.txHash)
+            await createListing(l);
+            console.log("created listing:", l.amount, l.assetName)
         }
     }
 
