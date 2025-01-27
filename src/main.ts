@@ -3,17 +3,21 @@ import "jsr:@std/dotenv/load";
 
 import { createChainSynchronizationClient } from "./client/client.ts";
 import { createInteractionContext } from "./client/connection.ts";
-import { classify } from "./classify.ts";
-import { createListing, createSale } from "./db/db.ts";
+import { classify, handleTxnInfo } from "./service.ts";
 
-const OFFERSV2_CONTRACT_CREATED = {
+const JPG_V2_CONTRACT_CREATED = {
     id: "61e3c0e80a3ffbdf4a1c5e66c6a0b26283a1a237910528bfe3686d24c103fef7",
     slot: 87897855
 }
 
 const ARB_TIME = {
-    id: "e46f05f1bf7d46de6e29344b6ffea30a7cd72ea594f569b06f9a43d016d8fba9",
-    slot: 145896722
+    id: "9f29f34a1d8aa6b7ba68439ef83df8a64e15ebb214c60b9563f09e5521a14e9d",
+    slot: 146415718
+}
+
+const ARB_TIME_2 = {
+    id: "ad96c014685cc2b3a065eb4dc2c6a57c52dca5b43bc2d806a53c46419a648e66",
+    slot: 146424450
 }
 
 export const createContext = () =>
@@ -39,15 +43,7 @@ const rollForward = async (
 
     const info = await classify(block);
 
-    for (const l of info.listings) {
-        await createListing(l);
-        console.log("created listing:", l.amount, l.assetName);
-    }
-
-    for (const s of info.sales) {
-        await createSale(s);
-        console.log("created sale:", s.amount, s.assetName, s.seller, s.buyer);
-    }
+    await handleTxnInfo(info);
 
     requestNextBlock();
 };
@@ -63,7 +59,7 @@ export async function runExample() {
         rollForward,
         rollBackward,
     });
-    await client.resume([OFFERSV2_CONTRACT_CREATED]);
+    await client.resume([ARB_TIME_2]);
 }
 
 runExample();

@@ -1,6 +1,6 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
-import { Listing, listings, NewListing, NewSale, Sale, sales } from "./schema.ts";
+import { AssetOffer, assetOffers, CollectionOffer, collectionOffers, Listing, listings, NewAssetOffer, NewCollectionOffer, NewListing, NewSale, Sale, sales } from "./schema.ts";
 import { eq } from "drizzle-orm/expressions";
 const { Pool } = pg;
 
@@ -28,5 +28,15 @@ export async function listingByUtxo(utxoId: string): Promise<Listing | undefined
 
 export async function createSale(sale: NewSale): Promise<Sale> {
     const res = await db.insert(sales).values(sale)
+    return res;
+}
+
+export async function createAssetOffer(offer: NewAssetOffer): Promise<AssetOffer> {
+    const res = await db.insert(assetOffers).values(offer);
+    return res;
+}
+
+export async function createCollectionOffer(offer: NewCollectionOffer): Promise<CollectionOffer> {
+    const res = await db.insert(collectionOffers).values(offer);
     return res;
 }

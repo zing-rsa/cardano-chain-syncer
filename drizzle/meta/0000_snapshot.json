@@ -1,9 +1,183 @@
 {
-  "id": "36d319b7-0c1f-47bc-9d29-bedd7c62b8b9",
+  "id": "a05829ce-0726-4474-ae14-3f55cb06d498",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
+    "public.asset_offers": {
+      "name": "asset_offers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "asset_offers_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "amount": {
+          "name": "amount",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "asset_name": {
+          "name": "asset_name",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "asset_name_hex": {
+          "name": "asset_name_hex",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "asset_name_on_chain": {
+          "name": "asset_name_on_chain",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "asset_policy_id": {
+          "name": "asset_policy_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tx_hash": {
+          "name": "tx_hash",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "timestamp": {
+          "name": "timestamp",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "owner": {
+          "name": "owner",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "utxo_id": {
+          "name": "utxo_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "block_id": {
+          "name": "block_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "block_slot": {
+          "name": "block_slot",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.collection_offers": {
+      "name": "collection_offers",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "integer",
+          "primaryKey": true,
+          "notNull": true,
+          "identity": {
+            "type": "always",
+            "name": "collection_offers_id_seq",
+            "schema": "public",
+            "increment": "1",
+            "startWith": "1",
+            "minValue": "1",
+            "maxValue": "2147483647",
+            "cache": "1",
+            "cycle": false
+          }
+        },
+        "amount": {
+          "name": "amount",
+          "type": "numeric",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "policy_id": {
+          "name": "policy_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "tx_hash": {
+          "name": "tx_hash",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "timestamp": {
+          "name": "timestamp",
+          "type": "timestamp",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "owner": {
+          "name": "owner",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "utxo_id": {
+          "name": "utxo_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "block_id": {
+          "name": "block_id",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "block_slot": {
+          "name": "block_slot",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {},
+      "foreignKeys": {},
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
     "public.listings": {
       "name": "listings",
       "schema": "",
@@ -43,8 +217,14 @@
           "primaryKey": false,
           "notNull": true
         },
-        "onchain_asset_name": {
-          "name": "onchain_asset_name",
+        "asset_name_on_chain": {
+          "name": "asset_name_on_chain",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "asset_policy_id": {
+          "name": "asset_policy_id",
           "type": "varchar",
           "primaryKey": false,
           "notNull": true
@@ -76,6 +256,12 @@
         "block_id": {
           "name": "block_id",
           "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "block_slot": {
+          "name": "block_slot",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         }
@@ -127,8 +313,14 @@
           "primaryKey": false,
           "notNull": true
         },
-        "onchain_asset_name": {
-          "name": "onchain_asset_name",
+        "asset_name_on_chain": {
+          "name": "asset_name_on_chain",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "asset_policy_id": {
+          "name": "asset_policy_id",
           "type": "varchar",
           "primaryKey": false,
           "notNull": true
@@ -166,6 +358,12 @@
         "block_id": {
           "name": "block_id",
           "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "block_slot": {
+          "name": "block_slot",
+          "type": "integer",
           "primaryKey": false,
           "notNull": true
         }
