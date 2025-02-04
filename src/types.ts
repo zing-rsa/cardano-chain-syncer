@@ -1,33 +1,28 @@
-import { Data } from "https://deno.land/x/lucid@0.10.10/src/plutus/data.ts";
+import { Data } from "jsr:@spacebudz/lucid";
 
-const JpgDatumAddress = 
+export const PubKeyCredential = { PubKeyCredential: { pubkeyhash: Data.Bytes()}};
+export const ScriptCredential = { ScriptCredential: { scripthash: Data.Bytes()}};
+
+export const Credential = Data.Enum(
+    PubKeyCredential,
+    ScriptCredential
+)
+
+export const StakeCredential = Data.Nullable(Data.Object({ credential: Credential }))
+
+export const JpgDatumAddress = 
     Data.Object({
-        paymentCredential: Data.Object({ 
-            pubKeyHash: Data.Bytes()
-        }),
-        // stakeCredential: Data.Object({
-        //     container: Data.Object({
-        //         container: Data.Object({
-        //             stakeKeyHash: Data.Bytes()
-        //         })
-        //     })
-        // }),
-        stakeCredential: Data.Object({
-            container: Data.Nullable(Data.Object({
-                container: Data.Object({
-                    stakeKeyHash: Data.Bytes()
-                })
-            }))
-        })
+        paymentCredential: Credential,
+        stakeCredential: StakeCredential
     })
 
-const JpgDatumValue = 
+export const JpgDatumValue = 
     Data.Map(Data.Bytes(), Data.Object({
         amount: Data.Integer(),
         map: Data.Map(Data.Bytes(), Data.Integer())
     }))
 
-const JpgV2DatumShape = Data.Object({
+export const JpgV2Datum = Data.Object({
     owner: Data.Bytes(),
     payouts: Data.Array(
         Data.Object({
@@ -35,11 +30,8 @@ const JpgV2DatumShape = Data.Object({
             value: JpgDatumValue
         }))
 });
-export type JpgV2Datum = Data.Static<typeof JpgV2DatumShape>;
-export const JpgV2Datum = JpgV2DatumShape as unknown as JpgV2Datum;
 
-
-const JpgAskV1DatumShape = Data.Object({
+export const JpgAskV1Datum = Data.Object({
     payouts: Data.Array(
         Data.Object({
             address: JpgDatumAddress,
@@ -48,11 +40,8 @@ const JpgAskV1DatumShape = Data.Object({
     owner: Data.Bytes()
 });
 
-export type JpgAskV1Datum = Data.Static<typeof JpgAskV1DatumShape>;
-export const JpgAskV1Datum = JpgAskV1DatumShape as unknown as JpgAskV1Datum;
 
-
-const JpgOfferDatumShape = Data.Object({
+export const JpgOfferDatum = Data.Object({
     owner: Data.Bytes(),
     payouts: Data.Array(
         Data.Object({
@@ -60,6 +49,3 @@ const JpgOfferDatumShape = Data.Object({
             value: JpgDatumValue
         })),
 });
-
-export type JpgOfferDatum = Data.Static<typeof JpgOfferDatumShape>;
-export const JpgOfferDatum = JpgOfferDatumShape as unknown as JpgOfferDatum;

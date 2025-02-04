@@ -1,5 +1,5 @@
 import { BlockPraos, Metadata } from "@cardano-ogmios/schema";
-import { Data } from "https://deno.land/x/lucid@0.10.10/mod.ts";
+import { Data } from "jsr:@spacebudz/lucid";
 import { decodeHex } from "jsr:@std/encoding/hex";
 
 import { JpgAskV1Datum, JpgOfferDatum, JpgV2Datum } from "./types.ts";
@@ -10,7 +10,6 @@ const JPG_ASK_V1_ADDRESS = "addr1x8rjw3pawl0kelu4mj3c8x20fsczf5pl744s9mxz9v8n7ef
 const JPG_V2_ADDRESS = "addr1zxgx3far7qygq0k6epa0zcvcvrevmn0ypsnfsue94nsn3tvpw288a4x0xf8pxgcntelxmyclq83s0ykeehchz2wtspks905plm";
 const SPACEBUDZ_POLICY = "4523c5e21d409b81c95b45b0aea275b8ea1406e6cafea5583b9f8a5f";
 const JPG_OFFERS_ADDRESS = "addr1xxgx3far7qygq0k6epa0zcvcvrevmn0ypsnfsue94nsn3tfvjel5h55fgjcxgchp830r7h2l5msrlpt8262r3nvr8eks2utwdd";
-const JPG_FEES_STAKE_KEY_HASH = "2C967F4BD28944B06462E13C5E3F5D5FA6E03F8567569438CD833E6D".toLowerCase();
 const SHELLY_START_EPOCH = 1596491091;
 const SHELLY_START_SLOT = 4924800;
 
@@ -70,7 +69,7 @@ export async function classify(block: BlockPraos): Promise<TransactionInfo> {
                         }
 
                         const metadataCborHex = retrieveMetadata(tx.metadata);
-                        const datum = Data.from<JpgV2Datum>(metadataCborHex, JpgV2Datum);
+                        const datum = Data.from<typeof JpgV2Datum>(metadataCborHex, JpgV2Datum);
 
                         amount = datum.payouts.map((p) => p.value.get("")?.map.get("")!).reduce((c, n) => c + n); // sum all payouts
 
@@ -104,7 +103,7 @@ export async function classify(block: BlockPraos): Promise<TransactionInfo> {
                         }
 
                         const metadataCborHex = retrieveMetadata(tx.metadata);
-                        const datum = Data.from<JpgAskV1Datum>(metadataCborHex, JpgAskV1Datum);
+                        const datum = Data.from<typeof JpgAskV1Datum>(metadataCborHex, JpgAskV1Datum);
 
                         amount = (datum.payouts.map((p) => p.lovelace).reduce((c, n) => c + n)) / 2n * 100n / 49n; // add marketplace fee
 
@@ -161,17 +160,14 @@ export async function classify(block: BlockPraos): Promise<TransactionInfo> {
                         continue;
                     }
 
-                    let metadataCborHex = retrieveMetadata(tx.metadata);
-                    // this replaces all 122 cbor tags with 121, I'm not sure why but 122 fails to parse to object
-                    metadataCborHex = metadataCborHex.replaceAll("d87a", "d879");
+                    const metadataCborHex = retrieveMetadata(tx.metadata);
 
                     try {
-                        const datum = Data.from<JpgOfferDatum>(metadataCborHex, JpgOfferDatum);
+                        const datum = Data.from<typeof JpgOfferDatum>(metadataCborHex, JpgOfferDatum);
                         const offer = datum.payouts.find((p) => p.value.get(SPACEBUDZ_POLICY));
 
                         if (offer) {
-                            const fee = datum.payouts.find((p) => p.address.stakeCredential.container.container.stakeKeyHash == JPG_FEES_STAKE_KEY_HASH)?.value.get("")?.map.get("")!;
-                            const amount = fee + (fee * 49n); // fee is 2% of total
+                            const amount = out.value.ada.lovelace;
 
                             if (offer.value.get(SPACEBUDZ_POLICY)?.map.size) {
                                 // asset offer

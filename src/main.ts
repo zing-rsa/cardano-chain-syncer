@@ -16,8 +16,8 @@ const ARB_TIME = {
 }
 
 const ARB_TIME_2 = {
-    id: "ad96c014685cc2b3a065eb4dc2c6a57c52dca5b43bc2d806a53c46419a648e66",
-    slot: 146424450
+    id: "8483399c9fd3b4a30c0a6fb5e86d6e0d80baf31e7eb7c9bc21f29064283c0f89",
+    slot: 147124849
 }
 
 export const createContext = () =>
