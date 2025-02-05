@@ -56,4 +56,10 @@ events to match on:
 - jpg price update
 - jpg delist
 - jpg collection offer
+- jpg collection offer cancel
+- jpg collection offer price update
 - jpg single asset offer
+- jpg single asset offer cancel
+- jpg single asset offer price update
+
+
