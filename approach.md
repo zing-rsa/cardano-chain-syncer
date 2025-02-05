@@ -23,6 +23,13 @@ questions:
 
 events to match on:
 
+
+MVP: 
+- listing
+- cancel listing
+- price update
+- sale
+
 - jpg listing
   - criteria:
     - out exists in transaction where:

@@ -26,6 +26,10 @@ export async function listingByUtxo(utxoId: string): Promise<Listing | undefined
     return res[0];
 }
 
+export async function deleteListing(id: number): Promise<void> {
+    await db.delete(listings).where(eq(listings.id, id))
+}
+
 export async function createSale(sale: NewSale): Promise<Sale> {
     const res = await db.insert(sales).values(sale)
     return res;
