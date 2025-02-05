@@ -134,6 +134,13 @@ export async function classify(block: BlockPraos): Promise<TransactionInfo> {
                             const listing = await listingByUtxo(`${input.transaction.id}#${input.index}`);
 
                             if (listing) {
+                                if (out.address === listing.owner) {// TODO: need to bech32 this
+                                    // delist
+
+                                } else {
+                                    // sale
+
+                                }
                                 // sale
                                 txnInfo.sales.push({
                                     amount: listing.amount.toString(),
