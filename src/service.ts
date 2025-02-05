@@ -60,6 +60,15 @@ export async function classify(block: BlockPraos): Promise<void> {
                                 (ownerPayout.address.stakeCredential?.credential as typeof PubKeyCredential).PubKeyCredential.pubkeyhash,
                         );
 
+                        // WIP: bundled listings
+                        // for (const onchainAssetName of Object.keys(out.value[SPACEBUDZ_POLICY])) {
+
+                        //     const assetNameHex = onchainAssetName.replace("000de140", "");
+                        //     const assetName = new TextDecoder("utf-8").decode(decodeHex(assetNameHex));
+
+
+                        // }
+
                         const assetNameOnChain = Object.keys(out.value[SPACEBUDZ_POLICY])[0];
                         const assetNameHex = assetNameOnChain.replace("000de140", "");
                         const assetName = new TextDecoder("utf-8").decode(decodeHex(assetNameHex));
