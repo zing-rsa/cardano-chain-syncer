@@ -3,7 +3,7 @@ import "jsr:@std/dotenv/load";
 
 import { createChainSynchronizationClient } from "./client/client.ts";
 import { createInteractionContext } from "./client/connection.ts";
-import { classify, handleTxnInfo } from "./service.ts";
+import { classify } from "./service.ts";
 
 const JPG_V2_CONTRACT_CREATED = {
     id: "61e3c0e80a3ffbdf4a1c5e66c6a0b26283a1a237910528bfe3686d24c103fef7",
@@ -39,6 +39,30 @@ const UPDATE_899 = {
     id: "e74cf28deaa5fc32a8d53dbfa9067ba82842e1d8aebc4210bc11ef1818fe7cba",
     slot: 147009567,
 };
+
+const BUNDLED_LIST = {
+    id: "9afb0df74db500d65ef22a8c7b19d4df6a857d87bbb5678d28ae435ea3ea4397",
+    slot: 98554160,
+};
+
+const BUNDLED_UPDATE = {
+    id: "bfcb431fc3e96b35e368997e2bf8bbc18dc7053458f91409f6716ef4ffdf6380",
+    slot: 145399422,
+};
+
+const SWEEP_LISTING_1 = {
+    id: "455dbe4486b54837c827ee397bdc09e3a66abac96b10c45039019d9b8e335c5a",
+    slot: 146588868,
+};
+const SWEEP_LISTING_2 = {
+    id: "ad2d3fffea6e4ee927c983205895f8474455e7a873a4a2272e1a13458f646c30",
+    slot: 146589389,
+};
+const SWEEP = {
+    id: "a3fab96c406a76b0cc52a5f17852b37183ce2b3e791cfc15d8aadcca424cc1bb",
+    slot: 146594819,
+};
+
 
 
 export const createContext = () =>
@@ -78,7 +102,7 @@ export async function runExample() {
         rollForward,
         rollBackward,
     });
-    await client.resume([UPDATE_899]);
+    await client.resume([SWEEP]);
 }
 
 runExample();

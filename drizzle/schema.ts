@@ -12,7 +12,8 @@ export const listings = pgTable("listings", {
     owner: varchar().notNull(),
     utxoId: varchar().notNull(),
     blockId: varchar().notNull(),
-    blockSlot: integer().notNull()
+    blockSlot: integer().notNull(),
+    bundledListingId: integer()
 });
 
 export const sales = pgTable("sales", {
@@ -58,4 +59,25 @@ export const collectionOffers = pgTable("collection_offers", {
     blockSlot: integer().notNull()
 });
 
+export const bundledListings = pgTable("bundled_listings", {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    amount: numeric().notNull(),
+    txHash: varchar().notNull(),
+    timestamp: timestamp().notNull(),
+    owner: varchar().notNull(),
+    utxoId: varchar().notNull(),
+    blockId: varchar().notNull(),
+    blockSlot: integer().notNull()
+});
 
+export const bundleSales = pgTable("bundled_sales", {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    amount: numeric().notNull(),
+    txHash: varchar().notNull(),
+    timestamp: timestamp().notNull(),
+    buyer: varchar().notNull(),
+    seller: varchar().notNull(),
+    utxoId: varchar().notNull(),
+    blockId: varchar().notNull(),
+    blockSlot: integer().notNull()
+});

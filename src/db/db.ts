@@ -1,7 +1,7 @@
 import { drizzle } from "drizzle-orm/node-postgres";
 import pg from "pg";
-import { AssetOffer, assetOffers, CollectionOffer, collectionOffers, Listing, listings, NewAssetOffer, NewCollectionOffer, NewListing, NewSale, Sale, sales } from "./schema.ts";
-import { eq } from "drizzle-orm/expressions";
+import { AssetOffer, assetOffers, BundledListing, bundledListings, BundleSale, bundleSales, CollectionOffer, collectionOffers, Listing, listings, NewAssetOffer, NewBundledListing, NewBundleSale, NewCollectionOffer, NewListing, NewSale, Sale, sales } from "./schema.ts";
+import { eq, and, isNull } from "drizzle-orm/expressions";
 const { Pool } = pg;
 
 export const db = drizzle({
@@ -14,6 +14,7 @@ export const db = drizzle({
         ssl: false,
     }),
     casing: "snake_case",
+    // logger: true
 });
 
 export async function createListing(listing: NewListing): Promise<Listing> {
@@ -22,7 +23,20 @@ export async function createListing(listing: NewListing): Promise<Listing> {
 }
 
 export async function listingByUtxo(utxoId: string): Promise<Listing | undefined> {
-    const res = await db.select().from(listings).where(eq(listings.utxoId, utxoId))
+    const res = await db
+        .select()
+        .from(listings)
+        .where(
+            and(
+                eq(listings.utxoId, utxoId),
+                isNull(listings.bundledListingId)
+            )   
+        )
+    return res[0];
+}
+
+export async function bundledListingByUtxo(utxoId: string): Promise<BundledListing | undefined> {
+    const res = await db.select().from(bundledListings).where(eq(bundledListings.utxoId, utxoId))
     return res[0];
 }
 
@@ -42,5 +56,26 @@ export async function createAssetOffer(offer: NewAssetOffer): Promise<AssetOffer
 
 export async function createCollectionOffer(offer: NewCollectionOffer): Promise<CollectionOffer> {
     const res = await db.insert(collectionOffers).values(offer);
+    return res;
+}
+
+export async function createBundledListing(bundledListing: NewBundledListing, listings: NewListing[]): Promise<BundledListing> {
+    const bundledCreateResponse = await db.insert(bundledListings).values(bundledListing);
+
+    for (const listing of listings) {
+        await createListing({ ...listing, bundledListingId: bundledCreateResponse.id });
+    }
+
+    return bundledCreateResponse;
+}
+
+
+export async function deleteBundledListing(id: number): Promise<void> {
+    await db.delete(bundledListings).where(eq(bundledListings.id, id));
+    await db.delete(listings).where(eq(listings.bundledListingId, id));
+}
+
+export async function createBundleSale(sale: NewBundleSale): Promise<BundleSale> {
+    const res = await db.insert(bundleSales).values(sale)
     return res;
 }

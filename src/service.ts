@@ -3,8 +3,21 @@ import { Data } from "jsr:@spacebudz/lucid";
 import { decodeHex } from "jsr:@std/encoding/hex";
 
 import { JpgAskV1Datum, JpgOfferDatum, JpgV2Datum, PubKeyCredential } from "./types.ts";
-import { createAssetOffer, createCollectionOffer, createListing, createSale, db, deleteListing, listingByUtxo } from "./db/db.ts";
+import {
+    bundledListingByUtxo,
+    createAssetOffer,
+    createBundledListing,
+    createBundleSale,
+    createCollectionOffer,
+    createListing,
+    createSale,
+    db,
+    deleteBundledListing,
+    deleteListing,
+    listingByUtxo,
+} from "./db/db.ts";
 import { converter } from "./util.ts";
+import { NewListing } from "./db/schema.ts";
 
 const JPG_ASK_V1_ADDRESS = "addr1x8rjw3pawl0kelu4mj3c8x20fsczf5pl744s9mxz9v8n7efvjel5h55fgjcxgchp830r7h2l5msrlpt8262r3nvr8ekstg4qrx";
 const JPG_V2_ADDRESS = "addr1zxgx3far7qygq0k6epa0zcvcvrevmn0ypsnfsue94nsn3tvpw288a4x0xf8pxgcntelxmyclq83s0ykeehchz2wtspks905plm";
@@ -13,35 +26,19 @@ const JPG_OFFERS_ADDRESS = "addr1xxgx3far7qygq0k6epa0zcvcvrevmn0ypsnfsue94nsn3tf
 const SHELLY_START_EPOCH = 1596491091;
 const SHELLY_START_SLOT = 4924800;
 
-
 export async function classify(block: BlockPraos): Promise<void> {
-
     if (block.transactions) {
         for (const tx of block.transactions) {
             for (const [utxoIdx, out] of tx.outputs.entries()) {
                 if (out.value[SPACEBUDZ_POLICY]) {
-                    let amount, owner;
+                    let amount;
 
                     if (out.address === JPG_V2_ADDRESS) {
                         // listing or price update
-                        if (Object.keys(out.value[SPACEBUDZ_POLICY]).length > 1) {
-                            console.error("bundled listings and sweeps not supported");
-                            continue;
-                        }
 
                         if (!tx.metadata) {
                             console.log("tx has no metadata. tx_id=", tx.id);
                             continue;
-                        }
-
-                        let existingListing;
-                        for (const input of tx.inputs) {
-                            const listing = await listingByUtxo(`${input.transaction.id}#${input.index}`);
-
-                            if (listing) {
-                                existingListing = listing;
-                                break;
-                            }
                         }
 
                         const metadataCborHex = retrieveMetadata(tx.metadata);
@@ -60,26 +57,12 @@ export async function classify(block: BlockPraos): Promise<void> {
                                 (ownerPayout.address.stakeCredential?.credential as typeof PubKeyCredential).PubKeyCredential.pubkeyhash,
                         );
 
-                        // WIP: bundled listings
-                        // for (const onchainAssetName of Object.keys(out.value[SPACEBUDZ_POLICY])) {
+                        const newListings: NewListing[] = [];
+                        for (const assetNameOnChain of Object.keys(out.value[SPACEBUDZ_POLICY])) {
+                            const assetNameHex = assetNameOnChain.replace("000de140", "");
+                            const assetName = new TextDecoder("utf-8").decode(decodeHex(assetNameHex));
 
-                        //     const assetNameHex = onchainAssetName.replace("000de140", "");
-                        //     const assetName = new TextDecoder("utf-8").decode(decodeHex(assetNameHex));
-
-
-                        // }
-
-                        const assetNameOnChain = Object.keys(out.value[SPACEBUDZ_POLICY])[0];
-                        const assetNameHex = assetNameOnChain.replace("000de140", "");
-                        const assetName = new TextDecoder("utf-8").decode(decodeHex(assetNameHex));
-
-                        if (existingListing) {
-                            // price update
-
-                            console.log("price updated:", assetName, existingListing.amount, "->", amount);
-                            await deleteListing(existingListing.id);
-
-                            await createListing({
+                            newListings.push({
                                 amount: amount.toString(),
                                 assetName,
                                 assetNameHex,
@@ -92,44 +75,74 @@ export async function classify(block: BlockPraos): Promise<void> {
                                 blockId: block.id,
                                 blockSlot: block.slot,
                             });
-                        } else {
-                            // new listing
+                        }
 
-                            console.log("listed:", assetName, amount);
-                            await createListing({
-                                amount: amount.toString(),
-                                assetName,
-                                assetNameHex,
-                                assetNameOnChain,
-                                assetPolicyId: SPACEBUDZ_POLICY,
-                                txHash: tx.id,
-                                owner: ownerAddress,
-                                timestamp: new Date((SHELLY_START_EPOCH + (block.slot - SHELLY_START_SLOT)) * 1000),
-                                utxoId: `${tx.id}#${utxoIdx}`,
-                                blockId: block.id,
-                                blockSlot: block.slot,
-                            });
+                        if (newListings.length == 1) {
+                            let existingListing;
+                            for (const input of tx.inputs) {
+                                const listing = await listingByUtxo(`${input.transaction.id}#${input.index}`);
+
+                                if (listing) {
+                                    existingListing = listing;
+                                    break;
+                                }
+                            }
+
+                            if (existingListing) {
+                                console.log("single listing price updated:", existingListing.assetName, existingListing.amount, "->", amount);
+
+                                await deleteListing(existingListing.id);
+                                await createListing(newListings[0]);
+                            } else {
+                                console.log("new single listing:", newListings[0].assetName, amount);
+
+                                await createListing(newListings[0]);
+                            }
+                        } else if (newListings.length > 1) {
+                            let existingBundledListing;
+                            for (const input of tx.inputs) {
+                                const listing = await bundledListingByUtxo(`${input.transaction.id}#${input.index}`);
+
+                                if (listing) {
+                                    existingBundledListing = listing;
+                                    break;
+                                }
+                            }
+
+                            if (existingBundledListing) {
+                                console.log("bundled listing price update:", newListings.map((l) => l.assetName).join(","), existingBundledListing.amount, "->", amount);
+
+                                await deleteBundledListing(existingBundledListing.id);
+
+                                await createBundledListing({
+                                    amount: amount.toString(),
+                                    txHash: tx.id,
+                                    owner: ownerAddress,
+                                    timestamp: new Date((SHELLY_START_EPOCH + (block.slot - SHELLY_START_SLOT)) * 1000),
+                                    utxoId: `${tx.id}#${utxoIdx}`,
+                                    blockId: block.id,
+                                    blockSlot: block.slot,
+                                }, newListings);
+                            } else {
+                                console.log("new bundled listing:", newListings.map((l) => l.assetName).join(","), amount);
+
+                                await createBundledListing({
+                                    amount: amount.toString(),
+                                    txHash: tx.id,
+                                    owner: ownerAddress,
+                                    timestamp: new Date((SHELLY_START_EPOCH + (block.slot - SHELLY_START_SLOT)) * 1000),
+                                    utxoId: `${tx.id}#${utxoIdx}`,
+                                    blockId: block.id,
+                                    blockSlot: block.slot,
+                                }, newListings);
+                            }
                         }
                     } else if (out.address === JPG_ASK_V1_ADDRESS) {
                         // listing or price update
-                        if (Object.keys(out.value[SPACEBUDZ_POLICY]).length > 1) {
-                            console.error("bundled listings and sweeps not supported");
-                            continue;
-                        }
 
                         if (!tx.metadata) {
                             console.log("tx has no metadata. tx_id=", tx.id);
                             continue;
-                        }
-
-                        let existingListing;
-                        for (const input of tx.inputs) {
-                            const listing = await listingByUtxo(`${input.transaction.id}#${input.index}`);
-
-                            if (listing) {
-                                existingListing = listing;
-                                break;
-                            }
                         }
 
                         const metadataCborHex = retrieveMetadata(tx.metadata);
@@ -148,17 +161,12 @@ export async function classify(block: BlockPraos): Promise<void> {
                                 (ownerPayout.address.stakeCredential?.credential as typeof PubKeyCredential).PubKeyCredential.pubkeyhash,
                         );
 
-                        const assetNameOnChain = Object.keys(out.value[SPACEBUDZ_POLICY])[0];
-                        const assetNameHex = assetNameOnChain.replace("000de140", "");
-                        const assetName = new TextDecoder("utf-8").decode(decodeHex(assetNameHex));
+                        const newListings: NewListing[] = [];
+                        for (const assetNameOnChain of Object.keys(out.value[SPACEBUDZ_POLICY])) {
+                            const assetNameHex = assetNameOnChain.replace("000de140", "");
+                            const assetName = new TextDecoder("utf-8").decode(decodeHex(assetNameHex));
 
-                        if (existingListing) {
-                            // price update
-
-                            console.log("price updated:", assetName, existingListing.amount, "->", amount);
-                            await deleteListing(existingListing.id);
-                            
-                            await createListing({
+                            newListings.push({
                                 amount: amount.toString(),
                                 assetName,
                                 assetNameHex,
@@ -171,41 +179,83 @@ export async function classify(block: BlockPraos): Promise<void> {
                                 blockId: block.id,
                                 blockSlot: block.slot,
                             });
-                        } else {
-                            // new listing
+                        }
 
-                            console.log("listed:", assetName, amount);
-                            await createListing({
-                                amount: amount.toString(),
-                                assetName,
-                                assetNameHex,
-                                assetNameOnChain,
-                                assetPolicyId: SPACEBUDZ_POLICY,
-                                txHash: tx.id,
-                                owner: ownerAddress,
-                                timestamp: new Date((SHELLY_START_EPOCH + (block.slot - SHELLY_START_SLOT)) * 1000),
-                                utxoId: `${tx.id}#${utxoIdx}`,
-                                blockId: block.id,
-                                blockSlot: block.slot,
-                            });
+                        if (newListings.length == 1) {
+                            let existingListing;
+                            for (const input of tx.inputs) {
+                                const listing = await listingByUtxo(`${input.transaction.id}#${input.index}`);
+
+                                if (listing) {
+                                    existingListing = listing;
+                                    break;
+                                }
+                            }
+
+                            if (existingListing) {
+                                console.log("single listing price updated:", existingListing.assetName, existingListing.amount, "->", amount);
+
+                                await deleteListing(existingListing.id);
+                                await createListing(newListings[0]);
+                            } else {
+                                console.log("new single listing:", newListings[0].assetName, amount);
+
+                                await createListing(newListings[0]);
+                            }
+                        } else if (newListings.length > 1) {
+                            let existingBundledListing;
+                            for (const input of tx.inputs) {
+                                const listing = await bundledListingByUtxo(`${input.transaction.id}#${input.index}`);
+
+                                if (listing) {
+                                    existingBundledListing = listing;
+                                    break;
+                                }
+                            }
+
+                            if (existingBundledListing) {
+                                console.log("bundled listing price update:", newListings.map((l) => l.assetName).join(","), existingBundledListing.amount, "->", amount);
+
+                                await deleteBundledListing(existingBundledListing.id);
+
+                                await createBundledListing({
+                                    amount: amount.toString(),
+                                    txHash: tx.id,
+                                    owner: ownerAddress,
+                                    timestamp: new Date((SHELLY_START_EPOCH + (block.slot - SHELLY_START_SLOT)) * 1000),
+                                    utxoId: `${tx.id}#${utxoIdx}`,
+                                    blockId: block.id,
+                                    blockSlot: block.slot,
+                                }, newListings);
+                            } else {
+                                console.log("new bundled listing:", newListings.map((l) => l.assetName).join(","), amount);
+
+                                await createBundledListing({
+                                    amount: amount.toString(),
+                                    txHash: tx.id,
+                                    owner: ownerAddress,
+                                    timestamp: new Date((SHELLY_START_EPOCH + (block.slot - SHELLY_START_SLOT)) * 1000),
+                                    utxoId: `${tx.id}#${utxoIdx}`,
+                                    blockId: block.id,
+                                    blockSlot: block.slot,
+                                }, newListings);
+                            }
                         }
                     } else {
-                        if (Object.keys(out.value[SPACEBUDZ_POLICY]).length > 1) {
-                            console.error("bundled listings and sweeps not supported");
-                            continue;
-                        }
-
                         for (const input of tx.inputs) {
+
                             const listing = await listingByUtxo(`${input.transaction.id}#${input.index}`);
 
                             if (listing) {
                                 if (out.address === listing.owner) {
                                     // delist
                                     console.log("delisted:", listing.assetName, listing.amount);
-                                    await deleteListing(listing.id)
+                                    await deleteListing(listing.id);
                                 } else {
                                     // sale
-                                    console.log("sale:", listing.assetName, listing.amount)
+                                    console.log("sale:", listing.assetName, listing.amount);
+
+                                    await deleteListing(listing.id);
                                     await createSale({
                                         amount: listing.amount.toString(),
                                         assetName: listing.assetName,
@@ -221,9 +271,35 @@ export async function classify(block: BlockPraos): Promise<void> {
                                         blockSlot: block.slot,
                                     });
                                 }
+                                continue;
                             }
 
-                            break;
+                            const bundledListing = await bundledListingByUtxo(`${input.transaction.id}#${input.index}`);
+
+                            if (bundledListing) {
+                                if (out.address === bundledListing.owner) {
+                                    // delist
+                                    console.log("delisted bundled listing:", bundledListing.id, bundledListing.amount);
+                                    await deleteBundledListing(bundledListing.id);
+                                } else {
+                                    // sale
+                                    console.log("bundled listing sale:", bundledListing.id, bundledListing.amount);
+
+                                    await deleteBundledListing(bundledListing.id);
+                                    await createBundleSale({
+                                        amount: bundledListing.amount.toString(),
+                                        txHash: tx.id,
+                                        seller: bundledListing.owner,
+                                        buyer: out.address,
+                                        timestamp: new Date((SHELLY_START_EPOCH + (block.slot - SHELLY_START_SLOT)) * 1000),
+                                        utxoId: `${tx.id}#${utxoIdx}`,
+                                        blockId: block.id,
+                                        blockSlot: block.slot,
+                                    });
+                                }
+
+                                continue;
+                            }
                         }
                     }
                 } else if (out.address === JPG_OFFERS_ADDRESS) {
