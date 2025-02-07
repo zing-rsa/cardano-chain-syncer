@@ -99,3 +99,15 @@ Deno.test("Parse AskV1Datum with nulls and 122s", async () => {
     assertEquals((output.payouts[1].address.paymentCredential as typeof ScriptCredential).ScriptCredential.scripthash, "5D12FE5420993BD79DAA6EB1D380DD08D3D052FF774369868218BF57".toLowerCase());
     assertEquals(output.payouts[0].address.stakeCredential?.credential, undefined);
 });
+
+Deno.test("Parse asset offer Datum 1", async () => {
+    const datum = "d8799f581c61d2792fa71b10355f61c9d60e859ccc5d07b3f9d2721bf44907a6179fd8799fd8799fd87a9f581c84cc25ea4c29951d40b443b95bbc5676bc425470f96376d1984af9abffd8799fd8799fd87a9f581c2c967f4bd28944b06462e13c5e3f5d5fa6e03f8567569438cd833e6dffffffffa140d8799f00a1401a000f4240ffffd8799fd8799fd8799f581c3342ca8c073a11b7664bd105123353e79c01116cc465915133fdcf75ffd8799fd8799fd8799f581cd6c5f6f7562142b9815eacc31a3a1579991452e860aaf60573722018ffffffffa140d8799f00a1401a000f4240ffffd8799fd8799fd8799f581c61d2792fa71b10355f61c9d60e859ccc5d07b3f9d2721bf44907a617ffd8799fd8799fd8799f581ca168439e5531ab331c72624e08f93008dee27554983b72e32f6b42a4ffffffffa1581cf0ff48bbb7bbe9d59a40f1ce90e9e9d0ff5002ec48f232b49ca0fb9ad8799f00a1443537353501ffffffff";
+
+    const output = Data.from<typeof JpgOfferDatum>(datum, JpgOfferDatum);
+
+    assertEquals(output.owner, "61D2792FA71B10355F61C9D60E859CCC5D07B3F9D2721BF44907A617".toLowerCase());
+
+    assertEquals(output.payouts[2].value.get("F0FF48BBB7BBE9D59A40F1CE90E9E9D0FF5002EC48F232B49CA0FB9A".toLowerCase())?.map.get("35373535"), 1n);
+    assertEquals('PubKeyCredential' in output.payouts[2].address.paymentCredential, true);
+    assertEquals((output.payouts[2].address.paymentCredential as typeof PubKeyCredential).PubKeyCredential.pubkeyhash, "61D2792FA71B10355F61C9D60E859CCC5D07B3F9D2721BF44907A617".toLowerCase());
+}) 

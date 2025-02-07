@@ -63,6 +63,25 @@ const SWEEP = {
     slot: 146594819,
 };
 
+const COL_OFFER = {
+    id: "be72b10f907a5ea3284c3d14769a364e1ddfd6dfb0a636279bc2d29b911bfcab",
+    slot: 147207154,
+};
+
+const ASSET_OFFER = {
+    id: "08511c5c441238b7e4ada9f346748e0391e27b4bd08836f530ec08b7337cc11a",
+    slot: 147155558,
+};
+
+const COL_OFFER_2 = {
+    id: "8483399c9fd3b4a30c0a6fb5e86d6e0d80baf31e7eb7c9bc21f29064283c0f89",
+    slot: 147124849,
+};
+const COL_OFFER_2_PRICE_UPDATE = {
+    id: "ed3e53f77e83db396547005127df3ce6a53510b4068ff94b432a98f8d42c3c76",
+    slot: 147128929,
+};
+
 
 
 export const createContext = () =>
@@ -102,7 +121,7 @@ export async function runExample() {
         rollForward,
         rollBackward,
     });
-    await client.resume([SWEEP]);
+    await client.resume([COL_OFFER_2_PRICE_UPDATE]);
 }
 
 runExample();

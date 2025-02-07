@@ -18,8 +18,8 @@ export const db = drizzle({
 });
 
 export async function createListing(listing: NewListing): Promise<Listing> {
-    const res = await db.insert(listings).values(listing)
-    return res;
+    const res = await db.insert(listings).values(listing).returning();
+    return res[0];
 }
 
 export async function listingByUtxo(utxoId: string): Promise<Listing | undefined> {
@@ -40,33 +40,51 @@ export async function bundledListingByUtxo(utxoId: string): Promise<BundledListi
     return res[0];
 }
 
+export async function assetOffersByUtxo(utxoId: string): Promise<AssetOffer | undefined> {
+    const res = await db.select().from(assetOffers).where(eq(assetOffers.utxoId, utxoId))
+    return res[0];
+}
+
+export async function collectionOffersByUtxo(utxoId: string): Promise<CollectionOffer | undefined> {
+    const res = await db.select().from(collectionOffers).where(eq(collectionOffers.utxoId, utxoId))
+    return res[0];
+}
+
 export async function deleteListing(id: number): Promise<void> {
     await db.delete(listings).where(eq(listings.id, id))
 }
 
+export async function deleteAssetOffer(id: number): Promise<void> {
+    await db.delete(assetOffers).where(eq(assetOffers.id, id))
+}
+
+export async function deleteCollectionOffer(id: number): Promise<void> {
+    await db.delete(collectionOffers).where(eq(collectionOffers.id, id))
+}
+
 export async function createSale(sale: NewSale): Promise<Sale> {
-    const res = await db.insert(sales).values(sale)
-    return res;
+    const res = await db.insert(sales).values(sale).returning()
+    return res[0];
 }
 
 export async function createAssetOffer(offer: NewAssetOffer): Promise<AssetOffer> {
-    const res = await db.insert(assetOffers).values(offer);
-    return res;
+    const res = await db.insert(assetOffers).values(offer).returning();
+    return res[0];
 }
 
 export async function createCollectionOffer(offer: NewCollectionOffer): Promise<CollectionOffer> {
-    const res = await db.insert(collectionOffers).values(offer);
-    return res;
+    const res = await db.insert(collectionOffers).values(offer).returning();
+    return res[0];
 }
 
 export async function createBundledListing(bundledListing: NewBundledListing, listings: NewListing[]): Promise<BundledListing> {
-    const bundledCreateResponse = await db.insert(bundledListings).values(bundledListing);
+    const bundledCreateResponse = await db.insert(bundledListings).values(bundledListing).returning();
 
     for (const listing of listings) {
-        await createListing({ ...listing, bundledListingId: bundledCreateResponse.id });
+        await createListing({ ...listing, bundledListingId: bundledCreateResponse[0].id });
     }
 
-    return bundledCreateResponse;
+    return bundledCreateResponse[0];
 }
 
 
@@ -76,6 +94,6 @@ export async function deleteBundledListing(id: number): Promise<void> {
 }
 
 export async function createBundleSale(sale: NewBundleSale): Promise<BundleSale> {
-    const res = await db.insert(bundleSales).values(sale)
-    return res;
+    const res = await db.insert(bundleSales).values(sale).returning()
+    return res[0];
 }
