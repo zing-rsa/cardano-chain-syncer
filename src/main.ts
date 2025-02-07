@@ -81,6 +81,10 @@ const COL_OFFER_2_PRICE_UPDATE = {
     id: "ed3e53f77e83db396547005127df3ce6a53510b4068ff94b432a98f8d42c3c76",
     slot: 147128929,
 };
+const ARB_TIME_2 = {
+    id: "2044f16f57797c8708c618113338a7feb76f9e1dfc83d374b9b59249378697b1",
+    slot: 146965940,
+};
 
 
 
@@ -121,7 +125,7 @@ export async function runExample() {
         rollForward,
         rollBackward,
     });
-    await client.resume([COL_OFFER_2_PRICE_UPDATE]);
+    await client.resume([ARB_TIME_2]);
 }
 
 runExample();

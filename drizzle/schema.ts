@@ -1,4 +1,4 @@
-import { integer, numeric, pgTable, timestamp, varchar } from "drizzle-orm/pg-core";
+import { integer, numeric, pgEnum, pgTable, timestamp, varchar } from "drizzle-orm/pg-core";
 
 export const listings = pgTable("listings", {
     id: integer().primaryKey().generatedAlwaysAsIdentity(),
@@ -16,6 +16,8 @@ export const listings = pgTable("listings", {
     bundledListingId: integer()
 });
 
+export const saleTypesEnum = pgEnum("sale_types", ["accept_collection_offer", "accept_offer", "sale"]);
+
 export const sales = pgTable("sales", {
     id: integer().primaryKey().generatedAlwaysAsIdentity(),
     amount: numeric().notNull(),
@@ -29,7 +31,8 @@ export const sales = pgTable("sales", {
     seller: varchar().notNull(),
     utxoId: varchar().notNull(),
     blockId: varchar().notNull(),
-    blockSlot: integer().notNull()
+    blockSlot: integer().notNull(),
+    saleType: saleTypesEnum().notNull()
 });
 
 export const assetOffers = pgTable("asset_offers", {
