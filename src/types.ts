@@ -2,8 +2,8 @@ import { Data } from "jsr:@spacebudz/lucid";
 
 // ----------------------------------------------------------
 // generic
-export const PubKeyCredential = { PubKeyCredential: { pubkeyhash: Data.Bytes() } };
-export const ScriptCredential = { ScriptCredential: { scripthash: Data.Bytes() } };
+export const PubKeyCredential = { PubKeyCredential: { pubKeyHash: Data.Bytes() } };
+export const ScriptCredential = { ScriptCredential: { scriptHash: Data.Bytes() } };
 
 export const Credential = Data.Enum(
     PubKeyCredential,

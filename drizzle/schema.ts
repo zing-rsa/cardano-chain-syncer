@@ -13,7 +13,7 @@ export const listings = pgTable("listings", {
     utxoId: varchar().notNull(),
     blockId: varchar().notNull(),
     blockSlot: integer().notNull(),
-    bundledListingId: integer()
+    bundledListingId: integer(),
 });
 
 export const saleTypesEnum = pgEnum("sale_types", ["accept_collection_offer", "accept_offer", "sale"]);
@@ -32,7 +32,7 @@ export const sales = pgTable("sales", {
     utxoId: varchar().notNull(),
     blockId: varchar().notNull(),
     blockSlot: integer().notNull(),
-    saleType: saleTypesEnum().notNull()
+    saleType: saleTypesEnum().notNull(),
 });
 
 export const assetOffers = pgTable("asset_offers", {
@@ -47,7 +47,7 @@ export const assetOffers = pgTable("asset_offers", {
     owner: varchar().notNull(),
     utxoId: varchar().notNull(),
     blockId: varchar().notNull(),
-    blockSlot: integer().notNull()
+    blockSlot: integer().notNull(),
 });
 
 export const collectionOffers = pgTable("collection_offers", {
@@ -59,7 +59,7 @@ export const collectionOffers = pgTable("collection_offers", {
     owner: varchar().notNull(),
     utxoId: varchar().notNull(),
     blockId: varchar().notNull(),
-    blockSlot: integer().notNull()
+    blockSlot: integer().notNull(),
 });
 
 export const bundledListings = pgTable("bundled_listings", {
@@ -70,7 +70,7 @@ export const bundledListings = pgTable("bundled_listings", {
     owner: varchar().notNull(),
     utxoId: varchar().notNull(),
     blockId: varchar().notNull(),
-    blockSlot: integer().notNull()
+    blockSlot: integer().notNull(),
 });
 
 export const bundleSales = pgTable("bundled_sales", {
@@ -82,5 +82,5 @@ export const bundleSales = pgTable("bundled_sales", {
     seller: varchar().notNull(),
     utxoId: varchar().notNull(),
     blockId: varchar().notNull(),
-    blockSlot: integer().notNull()
+    blockSlot: integer().notNull(),
 });

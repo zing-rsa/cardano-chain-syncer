@@ -4,7 +4,6 @@ import "jsr:@std/dotenv/load";
 import { createChainSynchronizationClient } from "./client/client.ts";
 import { createInteractionContext } from "./client/connection.ts";
 import Service from "./service.ts";
-import { replacer } from "./util.ts";
 
 const JPG_V2_CONTRACT_CREATED = {
     id: "61e3c0e80a3ffbdf4a1c5e66c6a0b26283a1a237910528bfe3686d24c103fef7",
@@ -39,12 +38,9 @@ const rollForward = async (
 
     block = block as BlockPraos;
 
-    await Deno.writeTextFile(`./src/tests/blocks/${block.id}.json`, JSON.stringify(block, replacer))
-
     await service.classify(block);
 
-    // requestNextBlock();
-    Deno.exit()
+    requestNextBlock();
 };
 
 const rollBackward = async ({ point }: any, requestNextBlock: () => void) => {
@@ -59,7 +55,7 @@ export async function runExample() {
         rollForward,
         rollBackward,
     });
-    await client.resume([ARB_TIME]);
+    await client.resume([JPG_V2_CONTRACT_CREATED]);
 }
 
 runExample();

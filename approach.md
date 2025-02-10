@@ -23,8 +23,8 @@ questions:
 
 events to match on:
 
+MVP:
 
-MVP: 
 - listing
 - cancel listing
 - price update
@@ -68,5 +68,3 @@ MVP:
 - jpg single asset offer
 - jpg single asset offer cancel
 - jpg single asset offer price update
-
-
