@@ -170,13 +170,107 @@ Deno.test("Collection offer and update", async () => {
     assertEquals(data.collectionOffers[0].amount, '571000000');
 });
 
-// TODO: accept colleciton offer
+Deno.test("List and accept collection offer", async () => {
+    //collection offer
+    let { block, service } = await initialize('d3a0a9e86de2fcd2933f0f9b26f373844bd7e9402c4397722e5a59e12df7a0f5_artificial');
 
-// TODO: accept asset offer
+    await service.classify(block);
 
+    assertEquals(data.collectionOffers.length, 1);
+    assertEquals(data.collectionOffers[0].amount, '590000000');
 
+    // list
+    ({ block, service } = await initialize('3fbccee2a7fa5d21632283cc573fe49f15f4a50a19ffe5b008317e8516547f1b', false));
 
+    await service.classify(block);
 
+    assertEquals(data.listings.length, 1);
+
+    // accept offer
+    ({ block, service } = await initialize('9a2deccd3eef03c18cc261b742466615136b6fd1bf752a1939e1d335ba0b8bdd_artificial', false));
+
+    await service.classify(block);
+
+    assertEquals(data.sales.length, 1)
+
+    assertEquals(data.sales[0].saleType, "accept_collection_offer")
+    assertEquals(data.listings.length, 0);
+});
+
+// https://cardanoscan.io/transaction/6689ec8c1368e6576fd50b0fb410a9a9de68a115f0092234907936ac43f45b39 
+Deno.test("Multi accept collection offer", async () => {
+    // collection offer 1
+    let { block, service } = await initialize('50cd6f14771b2fb603d487b588c7074019d5bcfbd9a2ada0f454a7df031ceacd');
+
+    await service.classify(block);
+
+    assertEquals(data.collectionOffers.length, 1);
+    assertEquals(data.collectionOffers[0].amount, '568000000');
+
+    // collection offer 2
+    ({ block, service } = await initialize('9be6d78264c65af5c2551f23af8baa8390d1a4d21ce52f4b1bb0739272ca40fb', false));
+
+    await service.classify(block);
+
+    assertEquals(data.collectionOffers.length, 2);
+
+    // multi-accept offer
+    ({ block, service } = await initialize('a8a1f1e0388deb2137d396ef09ffe6579102f5e3dffa64e2516cad83e47f6ae3', false));
+
+    await service.classify(block);
+
+    assertEquals(data.sales.length, 2)
+    assertEquals(data.sales[0].saleType, "accept_collection_offer")
+    assertEquals(data.sales[0].amount, "568000000")
+    assertEquals(data.sales[1].saleType, "accept_collection_offer")
+    assertEquals(data.sales[1].amount, "570000000")
+    assertEquals(data.listings.length, 0);
+    assertEquals(data.collectionOffers.length, 0)
+});
+
+Deno.test("Accept collection offer with no listing", async () => {
+    // collection offer
+    let { block, service } = await initialize('bf020b1ecbed26b0cbae9f714185139035fc7849483e0589f1c256b0f3b9ec05');
+
+    await service.classify(block);
+
+    assertEquals(data.listings.length, 0)
+    assertEquals(data.collectionOffers.length, 1);
+    assertEquals(data.collectionOffers[0].amount, '631000000');
+
+    // accept collection offer
+    ({ block, service } = await initialize('da6fb6295f459306387aea3e8f35831b733ffa58e7bfbd7183c227ae4ed44837', false));
+
+    await service.classify(block);
+
+    assertEquals(data.sales.length, 1)
+    assertEquals(data.sales[0].saleType, "accept_collection_offer")
+    assertEquals(data.sales[0].amount, "631000000")
+    assertEquals(data.listings.length, 0);
+    assertEquals(data.collectionOffers.length, 0)
+});
+
+Deno.test("Accept asset offer", async () => {
+    // asset offer
+    let { block, service } = await initialize('f400489eae8ae6a73dcff48d6cc28709b89a651d785d9c661d76182e5fe4ffab');
+
+    await service.classify(block);
+
+    assertEquals(data.listings.length, 0)
+    assertEquals(data.assetOffers.length, 1);
+    assertEquals(data.assetOffers[0].amount, '3690000000');
+
+    // accept asset offer
+    ({ block, service } = await initialize('7e6bbb07bd15aa0cf512e0d87a721126a8590f7c11cd7fdbfd8fc4ed8ca9d68b', false));
+
+    await service.classify(block);
+
+    assertEquals(data.sales.length, 1)
+    assertEquals(data.sales[0].saleType, "accept_offer")
+    assertEquals(data.sales[0].amount, "3690000000")
+    assertEquals(data.listings.length, 0);
+    assertEquals(data.assetOffers.length, 0)
+});
 
 // mock db
 let data: data;

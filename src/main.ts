@@ -12,8 +12,8 @@ const JPG_V2_CONTRACT_CREATED = {
 };
 
 const ARB_TIME = {
-    id: "bf781b10136d9df558ff29e3563d30c4a30edf6739e3c7389d23290c3ba25895",
-    slot: 145915234,
+    id: "ab4c1741bee532f69e227a1d01a006557cddcd3934d865a6de0ae43a30c3c419",
+    slot: 147562805,
 };
 
 let service: Service;
@@ -43,8 +43,8 @@ const rollForward = async (
 
     await service.classify(block);
 
-    requestNextBlock();
-    // Deno.exit()
+    // requestNextBlock();
+    Deno.exit()
 };
 
 const rollBackward = async ({ point }: any, requestNextBlock: () => void) => {
@@ -59,7 +59,7 @@ export async function runExample() {
         rollForward,
         rollBackward,
     });
-    await client.resume([JPG_V2_CONTRACT_CREATED]);
+    await client.resume([ARB_TIME]);
 }
 
 runExample();
