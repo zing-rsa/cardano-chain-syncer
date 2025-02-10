@@ -11,7 +11,6 @@ import Database from "./db/db.ts";
 const JPG_ASK_V1_ADDRESS = "addr1x8rjw3pawl0kelu4mj3c8x20fsczf5pl744s9mxz9v8n7efvjel5h55fgjcxgchp830r7h2l5msrlpt8262r3nvr8ekstg4qrx";
 const JPG_V2_ADDRESS = "addr1zxgx3far7qygq0k6epa0zcvcvrevmn0ypsnfsue94nsn3tvpw288a4x0xf8pxgcntelxmyclq83s0ykeehchz2wtspks905plm";
 const TRACKED_POLICY = "4523c5e21d409b81c95b45b0aea275b8ea1406e6cafea5583b9f8a5f"; // spacebudz
-// const TRACKED_POLICY = "f0ff48bbb7bbe9d59a40f1ce90e9e9d0ff5002ec48f232b49ca0fb9a"; // adahandle // TODO: add multiple policies? (ada handle has 2, with different names)
 const JPG_OFFERS_ADDRESS = "addr1xxgx3far7qygq0k6epa0zcvcvrevmn0ypsnfsue94nsn3tfvjel5h55fgjcxgchp830r7h2l5msrlpt8262r3nvr8eks2utwdd";
 const SHELLY_START_EPOCH = 1596491091;
 const SHELLY_START_SLOT = 4924800;
@@ -153,7 +152,7 @@ export default class Service {
                     utxoId: `${tx.id}#${utxoIdx}`,
                     blockId: block.id,
                     blockSlot: block.slot,
-                }, newListings);
+                }, newListings.map(x => { return {...x, amount: '0' }}));
             } else {
                 console.log("new bundled listing:", newListings.map((l) => l.assetName).join(","), amount);
     
@@ -165,7 +164,7 @@ export default class Service {
                     utxoId: `${tx.id}#${utxoIdx}`,
                     blockId: block.id,
                     blockSlot: block.slot,
-                }, newListings);
+                }, newListings.map(x => { return {...x, amount: '0' }}));
             }
         }
     }
@@ -232,6 +231,33 @@ export default class Service {
                 });
                 continue;
             }
+
+            const bundledListing = await this.db.bundledListingByUtxo(`${input.transaction.id}#${input.index}`);
+    
+            if (bundledListing) {
+                if (out.address === bundledListing.owner) {
+                    // delist
+                    console.log("de-listed bundled listing:", bundledListing.id, bundledListing.amount);
+                    await this.db.deleteBundledListing(bundledListing.id);
+                } else {
+                    // sale
+                    console.log("bundled listing sale:", bundledListing.id, bundledListing.amount);
+    
+                    await this.db.deleteBundledListing(bundledListing.id);
+                    await this.db.createBundleSale({
+                        amount: bundledListing.amount.toString(),
+                        txHash: tx.id,
+                        seller: bundledListing.owner,
+                        buyer: out.address,
+                        timestamp: new Date((SHELLY_START_EPOCH + (block.slot - SHELLY_START_SLOT)) * 1000),
+                        utxoId: `${tx.id}#${utxoIdx}`,
+                        blockId: block.id,
+                        blockSlot: block.slot,
+                    });
+                }
+    
+                continue;
+            }
     
             const listing = await this.db.listingByUtxo(`${input.transaction.id}#${input.index}`);
     
@@ -261,33 +287,6 @@ export default class Service {
                         saleType: "sale"
                     });
                 }
-                continue;
-            }
-    
-            const bundledListing = await this.db.bundledListingByUtxo(`${input.transaction.id}#${input.index}`);
-    
-            if (bundledListing) {
-                if (out.address === bundledListing.owner) {
-                    // delist
-                    console.log("de-listed bundled listing:", bundledListing.id, bundledListing.amount);
-                    await this.db.deleteBundledListing(bundledListing.id);
-                } else {
-                    // sale
-                    console.log("bundled listing sale:", bundledListing.id, bundledListing.amount);
-    
-                    await this.db.deleteBundledListing(bundledListing.id);
-                    await this.db.createBundleSale({
-                        amount: bundledListing.amount.toString(),
-                        txHash: tx.id,
-                        seller: bundledListing.owner,
-                        buyer: out.address,
-                        timestamp: new Date((SHELLY_START_EPOCH + (block.slot - SHELLY_START_SLOT)) * 1000),
-                        utxoId: `${tx.id}#${utxoIdx}`,
-                        blockId: block.id,
-                        blockSlot: block.slot,
-                    });
-                }
-    
                 continue;
             }
         }
