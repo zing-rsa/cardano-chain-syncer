@@ -3,42 +3,14 @@ import "jsr:@std/dotenv/load";
 
 import { createChainSynchronizationClient } from "./client/client.ts";
 import { createInteractionContext } from "./client/connection.ts";
-import { classify } from "./service.ts";
+import Service from "./service.ts";
+import { replacer } from "./util.ts";
 
 const JPG_V2_CONTRACT_CREATED = {
     id: "61e3c0e80a3ffbdf4a1c5e66c6a0b26283a1a237910528bfe3686d24c103fef7",
     slot: 87897855,
 };
 
-const ARB_TIME = {
-    id: "9f29f34a1d8aa6b7ba68439ef83df8a64e15ebb214c60b9563f09e5521a14e9d",
-    slot: 146415718,
-};
-
-const LISTING = {
-    id: "bd4a78545292925c2e3d92874bceffb31a8075024b7dfb4acbd7ff7f82c0095c",
-    slot: 147122561,
-};
-
-const LISTING_761 = {
-    id: "fb97a2501d0545c9d98ddaf6f37a7782df3a3683eac9cdc6afbc05eff1bfac9f",
-    slot: 146858577,
-};
-
-const DELIST_761 = {
-    id: "3853de95c6abf4b610145b6c85859f1f2d32365cfb414ac73a258e80593eaad6",
-    slot: 147180207,
-};
-
-const LISTING_899 = {
-    id: "3c96623447b66e6b0b0b5a13684a134b7b3498fdcf18f8aa0b7a46b06d4ab46f",
-    slot: 146967634,
-};
-
-const UPDATE_899 = {
-    id: "e74cf28deaa5fc32a8d53dbfa9067ba82842e1d8aebc4210bc11ef1818fe7cba",
-    slot: 147009567,
-};
 
 const BUNDLED_LIST = {
     id: "9afb0df74db500d65ef22a8c7b19d4df6a857d87bbb5678d28ae435ea3ea4397",
@@ -81,12 +53,13 @@ const COL_OFFER_2_PRICE_UPDATE = {
     id: "ed3e53f77e83db396547005127df3ce6a53510b4068ff94b432a98f8d42c3c76",
     slot: 147128929,
 };
+
 const ARB_TIME_2 = {
     id: "2044f16f57797c8708c618113338a7feb76f9e1dfc83d374b9b59249378697b1",
     slot: 146965940,
 };
 
-
+let service: Service;
 
 export const createContext = () =>
     createInteractionContext(
@@ -109,9 +82,12 @@ const rollForward = async (
 
     block = block as BlockPraos;
 
-    await classify(block);
+    await Deno.writeTextFile(`./src/tests/blocks/${block.id}.json`, JSON.stringify(block, replacer))
 
-    requestNextBlock();
+    await service.classify(block);
+
+    // requestNextBlock();
+    Deno.exit()
 };
 
 const rollBackward = async ({ point }: any, requestNextBlock: () => void) => {
@@ -120,12 +96,13 @@ const rollBackward = async ({ point }: any, requestNextBlock: () => void) => {
 };
 
 export async function runExample() {
+    service = new Service();
     const context = await createContext();
     const client = await createChainSynchronizationClient(context, {
         rollForward,
         rollBackward,
     });
-    await client.resume([ARB_TIME_2]);
+    await client.resume([BUNDLED_LIST]);
 }
 
 runExample();
