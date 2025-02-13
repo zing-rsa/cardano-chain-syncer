@@ -11,11 +11,14 @@ import {
     collectionOffers,
     Listing,
     listings,
+    Mint,
+    mints,
     NewAssetOffer,
     NewBundledListing,
     NewBundleSale,
     NewCollectionOffer,
     NewListing,
+    NewMint,
     NewSale,
     Sale,
     sales,
@@ -122,6 +125,12 @@ export default class Database {
 
     async createBundleSale(sale: NewBundleSale): Promise<BundleSale> {
         const res = await this.db.insert(bundleSales).values(sale).returning();
+        return res[0];
+    }
+
+    // mints
+    async createMint(mint: NewMint): Promise<Mint> {
+        const res = await this.db.insert(mints).values(mint).returning();
         return res[0];
     }
 }

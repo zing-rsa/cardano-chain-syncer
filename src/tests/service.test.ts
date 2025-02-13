@@ -1,4 +1,4 @@
-import { AssetOffer, BundledListing, BundleSale, CollectionOffer, Listing, NewAssetOffer, NewBundledListing, NewBundleSale, NewCollectionOffer, NewListing, NewSale, Sale } from "../db/schema.ts";
+import { AssetOffer, BundledListing, BundleSale, CollectionOffer, Listing, Mint, NewAssetOffer, NewBundledListing, NewBundleSale, NewCollectionOffer, NewListing, NewMint, NewSale, Sale } from "../db/schema.ts";
 import Database from "../db/db.ts";
 import Service from "../service.ts";
 import { BlockPraos } from "@cardano-ogmios/schema";
@@ -267,6 +267,30 @@ Deno.test("Accept asset offer", async () => {
     assertEquals(data.assetOffers.length, 0);
 });
 
+Deno.test("Mints assets", async () => {
+// asset offer
+    const { block, service } = await initialize("d2775d310ac273feb785c764be824527628aec1439ea3d57d09827f73148571b_artificial");
+
+    await service.classify(block);
+
+    assertEquals(data.listings.length, 0);
+    assertEquals(data.sales.length, 0);
+    assertEquals(data.mints.length, 2);
+    
+})
+
+Deno.test("Burns assets", async () => {
+    // asset offer
+        const { block, service } = await initialize("d2775d310ac273feb785c764be824527628aec1439ea3d57d09827f73148571b_artificial2");
+    
+        await service.classify(block);
+    
+        assertEquals(data.listings.length, 0);
+        assertEquals(data.sales.length, 0);
+        assertEquals(data.mints.length, 1);
+        assertEquals(data.mints[0].type, "burn");
+    })
+
 // mock db
 let data: data;
 
@@ -277,6 +301,7 @@ type data = {
     collectionOffers: CollectionOffer[];
     bundledListings: BundledListing[];
     bundleSales: BundleSale[];
+    mints: Mint[],
 };
 
 async function initialize(blockId: string, clear?: boolean) {
@@ -292,6 +317,7 @@ async function initialize(blockId: string, clear?: boolean) {
             collectionOffers: [],
             bundledListings: [],
             bundleSales: [],
+            mints: []
         };
     }
 
@@ -420,4 +446,14 @@ const db: Database = {
             resolve(entity);
         });
     },
+
+    createMint(mint: NewMint): Promise<Mint> {
+        return new Promise((resolve) => {
+            const id = (data.mints.sort((a, b) => b.id - a.id)[0]?.id ?? -1) + 1;
+            const entity = { ...mint, id };
+            data.mints.push(entity);
+
+            resolve(entity);
+        })
+    }
 };

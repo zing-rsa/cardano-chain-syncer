@@ -4,7 +4,7 @@ import { decodeHex } from "jsr:@std/encoding/hex";
 
 import { JpgAskV1Datum, JpgOfferDatum, JpgV2Datum, PubKeyCredential } from "./types.ts";
 import { NewListing } from "./db/schema.ts";
-import { converter } from "./util.ts";
+import { bigIntAbs, converter } from "./util.ts";
 import Database from "./db/db.ts";
 import db from "./db/db.ts";
 
@@ -50,6 +50,10 @@ export default class Service {
                         // offers
                         await this.handleAdaSentToOfferAddress(tx, out, block, utxoIdx);
                     }
+                }
+
+                if (tx.mint && tx.mint[TRACKED_POLICY]) {
+                    await this.handleAssetMint(tx, block);
                 }
             }
         }
@@ -100,7 +104,7 @@ export default class Service {
                 assetPolicyId: TRACKED_POLICY,
                 txHash: tx.id,
                 owner: ownerAddress,
-                timestamp: new Date((SHELLY_START_EPOCH + (block.slot - SHELLY_START_SLOT)) * 1000),
+                timestamp: this.getTimestamp(block.slot),
                 utxoId: `${tx.id}#${utxoIdx}`,
                 blockId: block.id,
                 blockSlot: block.slot,
@@ -149,7 +153,7 @@ export default class Service {
                         amount: amount.toString(),
                         txHash: tx.id,
                         owner: ownerAddress,
-                        timestamp: new Date((SHELLY_START_EPOCH + (block.slot - SHELLY_START_SLOT)) * 1000),
+                        timestamp: this.getTimestamp(block.slot),
                         utxoId: `${tx.id}#${utxoIdx}`,
                         blockId: block.id,
                         blockSlot: block.slot,
@@ -166,7 +170,7 @@ export default class Service {
                         amount: amount.toString(),
                         txHash: tx.id,
                         owner: ownerAddress,
-                        timestamp: new Date((SHELLY_START_EPOCH + (block.slot - SHELLY_START_SLOT)) * 1000),
+                        timestamp: this.getTimestamp(block.slot),
                         utxoId: `${tx.id}#${utxoIdx}`,
                         blockId: block.id,
                         blockSlot: block.slot,
@@ -201,7 +205,7 @@ export default class Service {
                     txHash: tx.id,
                     seller: seller,
                     buyer: assetOffer.owner,
-                    timestamp: new Date((SHELLY_START_EPOCH + (block.slot - SHELLY_START_SLOT)) * 1000),
+                    timestamp: this.getTimestamp(block.slot),
                     utxoId: `${tx.id}#${utxoIdx}`,
                     blockId: block.id,
                     blockSlot: block.slot,
@@ -232,7 +236,7 @@ export default class Service {
                     txHash: tx.id,
                     seller: seller,
                     buyer: collectionOffer.owner,
-                    timestamp: new Date((SHELLY_START_EPOCH + (block.slot - SHELLY_START_SLOT)) * 1000),
+                    timestamp: this.getTimestamp(block.slot),
                     utxoId: `${tx.id}#${utxoIdx}`,
                     blockId: block.id,
                     blockSlot: block.slot,
@@ -258,7 +262,7 @@ export default class Service {
                         txHash: tx.id,
                         seller: bundledListing.owner,
                         buyer: out.address,
-                        timestamp: new Date((SHELLY_START_EPOCH + (block.slot - SHELLY_START_SLOT)) * 1000),
+                        timestamp: this.getTimestamp(block.slot),
                         utxoId: `${tx.id}#${utxoIdx}`,
                         blockId: block.id,
                         blockSlot: block.slot,
@@ -289,7 +293,7 @@ export default class Service {
                         txHash: tx.id,
                         seller: listing.owner,
                         buyer: out.address,
-                        timestamp: new Date((SHELLY_START_EPOCH + (block.slot - SHELLY_START_SLOT)) * 1000),
+                        timestamp: this.getTimestamp(block.slot),
                         utxoId: `${tx.id}#${utxoIdx}`,
                         blockId: block.id,
                         blockSlot: block.slot,
@@ -343,7 +347,7 @@ export default class Service {
                         assetNameOnChain: existingAssetOffer.assetNameOnChain,
                         assetPolicyId: TRACKED_POLICY,
                         txHash: tx.id,
-                        timestamp: new Date((SHELLY_START_EPOCH + (block.slot - SHELLY_START_SLOT)) * 1000),
+                        timestamp: this.getTimestamp(block.slot),
                         owner: datum.owner,
                         utxoId: `${tx.id}#${utxoIdx}`,
                         blockId: block.id,
@@ -363,7 +367,7 @@ export default class Service {
                         assetNameOnChain,
                         assetPolicyId: TRACKED_POLICY,
                         txHash: tx.id,
-                        timestamp: new Date((SHELLY_START_EPOCH + (block.slot - SHELLY_START_SLOT)) * 1000),
+                        timestamp: this.getTimestamp(block.slot),
                         owner: datum.owner,
                         utxoId: `${tx.id}#${utxoIdx}`,
                         blockId: block.id,
@@ -393,7 +397,7 @@ export default class Service {
                         amount: amount.toString(),
                         policyId: TRACKED_POLICY,
                         txHash: tx.id,
-                        timestamp: new Date((SHELLY_START_EPOCH + (block.slot - SHELLY_START_SLOT)) * 1000),
+                        timestamp: this.getTimestamp(block.slot),
                         owner: datum.owner,
                         utxoId: `${tx.id}#${utxoIdx}`,
                         blockId: block.id,
@@ -406,13 +410,46 @@ export default class Service {
                         amount: amount.toString(),
                         policyId: TRACKED_POLICY,
                         txHash: tx.id,
-                        timestamp: new Date((SHELLY_START_EPOCH + (block.slot - SHELLY_START_SLOT)) * 1000),
+                        timestamp: this.getTimestamp(block.slot),
                         owner: datum.owner,
                         utxoId: `${tx.id}#${utxoIdx}`,
                         blockId: block.id,
                         blockSlot: block.slot,
                     });
                 }
+            }
+        }
+    }
+
+    async handleAssetMint(tx: Transaction, block: BlockPraos): Promise<void> {
+        if (!tx.mint)
+            return
+
+        for (const key in tx.mint[TRACKED_POLICY]) {
+            const assetNameHex = key.replace("000de140", "");
+            const assetName = new TextDecoder("utf-8").decode(decodeHex(assetNameHex));
+            const amount = tx.mint[TRACKED_POLICY][key];
+            
+            if (amount > 0n) {
+                console.log(`minted! ${assetName}, ${amount}`)
+                await this.db.createMint({
+                    type: "mint",
+                    amount: amount.toString(),
+                    txHash: tx.id,
+                    timestamp: this.getTimestamp(block.slot),
+                    blockId: block.id,
+                    blockSlot: block.slot
+                });
+            } else {
+                console.log(`burned! ${assetName}, ${amount}`)
+                await this.db.createMint({
+                    type: "burn",
+                    amount: bigIntAbs(amount).toString(),
+                    txHash: tx.id,
+                    timestamp: this.getTimestamp(block.slot),
+                    blockId: block.id,
+                    blockSlot: block.slot
+                });
             }
         }
     }
@@ -429,5 +466,9 @@ export default class Service {
         }
 
         return result.split(",")[0];
+    }
+
+    getTimestamp(slot: number) {
+        return new Date((SHELLY_START_EPOCH + (slot - SHELLY_START_SLOT)) * 1000)
     }
 }

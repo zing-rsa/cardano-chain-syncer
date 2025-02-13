@@ -62,3 +62,7 @@ export function converter(prefix: string) {
 }
 
 export const replacer = (_key: any, value: any) => typeof value === "bigint" ? value.toString() : value;
+
+export const bigIntAbs = (x: bigint): bigint => {
+    return x < 0 ? -x : x;
+}

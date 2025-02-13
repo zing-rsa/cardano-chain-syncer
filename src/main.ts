@@ -4,6 +4,7 @@ import "jsr:@std/dotenv/load";
 import { createChainSynchronizationClient } from "./client/client.ts";
 import { createInteractionContext } from "./client/connection.ts";
 import Service from "./service.ts";
+import { replacer } from "./util.ts";
 
 const JPG_V2_CONTRACT_CREATED = {
     id: "61e3c0e80a3ffbdf4a1c5e66c6a0b26283a1a237910528bfe3686d24c103fef7",
@@ -11,8 +12,8 @@ const JPG_V2_CONTRACT_CREATED = {
 };
 
 const ARB_TIME = {
-    id: "ab4c1741bee532f69e227a1d01a006557cddcd3934d865a6de0ae43a30c3c419",
-    slot: 147562805,
+    id: "2d0784ddd6b000edf3678d04c8c3068098dbc182b3e238e71fe41e19b1b2a7cd",
+    slot: 147909592,
 };
 
 let service: Service;

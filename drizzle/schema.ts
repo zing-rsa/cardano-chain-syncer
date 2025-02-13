@@ -84,3 +84,16 @@ export const bundleSales = pgTable("bundled_sales", {
     blockId: varchar().notNull(),
     blockSlot: integer().notNull(),
 });
+
+
+const mintTypeEnum = pgEnum("mint_type", ["mint", "burn"])
+
+export const mints = pgTable("mints", {
+    id: integer().primaryKey().generatedAlwaysAsIdentity(),
+    type: mintTypeEnum().notNull(),
+    amount: numeric().notNull(),
+    txHash: varchar().notNull(),
+    timestamp: timestamp().notNull(),
+    blockId: varchar().notNull(),
+    blockSlot: integer().notNull(),
+})
