@@ -68,3 +68,9 @@ MVP:
 - jpg single asset offer
 - jpg single asset offer cancel
 - jpg single asset offer price update
+
+
+
+## TODO:
+deal with rollbacks
+
