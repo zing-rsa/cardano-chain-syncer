@@ -18,8 +18,9 @@ const SHELLY_START_SLOT = 4924800;
 export default class Service {
     db: db;
     log?: boolean;
+    policy: string;
 
-    constructor(db?: db, log?: boolean) {
+    constructor(db?: db, log?: boolean, policy?: string) {
         this.log = log;
 
         if (db) {
@@ -27,6 +28,11 @@ export default class Service {
         } else {
             this.db = new Database(false);
         }
+
+        if (policy) 
+            this.policy = policy
+        else 
+            this.policy = TRACKED_POLICY
     }
 
     async classify(block: BlockPraos): Promise<void> {
@@ -35,7 +41,7 @@ export default class Service {
                 if (this.log) console.log("evaluating tx:", tx.id);
 
                 for (const [utxoIdx, out] of tx.outputs.entries()) {
-                    if (out.value[TRACKED_POLICY]) {
+                    if (out.value[this.policy]) {
                         if (out.address === JPG_V2_ADDRESS) {
                             // listing or price update
                             await this.handleAssetsSentToAddress(tx, out, block, utxoIdx, true);
@@ -52,7 +58,7 @@ export default class Service {
                     }
                 }
 
-                if (tx.mint && tx.mint[TRACKED_POLICY]) {
+                if (tx.mint && tx.mint[this.policy]) {
                     await this.handleAssetMint(tx, block);
                 }
             }
@@ -79,20 +85,22 @@ export default class Service {
             datum = Data.from<typeof JpgAskV1Datum>(metadataCborHex, JpgAskV1Datum);
             amount = (datum.payouts.map((p) => p.lovelace).reduce((c, n) => c + n)) / 2n * 100n / 49n; // add marketplace fee
         }
-
-        const ownerPayout = datum.payouts.find((p) => "PubKeyCredential" in p.address.paymentCredential && p.address.paymentCredential.PubKeyCredential.pubKeyHash === datum.owner);
-        if (!ownerPayout) {
-            throw new Error("Owner payout could not be found");
-        }
-
-        const ownerAddress = converter("addr").toBech32(
-            "01" +
-                (ownerPayout.address.paymentCredential as typeof PubKeyCredential).PubKeyCredential.pubKeyHash +
-                (ownerPayout.address.stakeCredential?.credential as typeof PubKeyCredential).PubKeyCredential.pubKeyHash,
+        
+        const ownerPubKeyHash: string = datum.owner;
+        let ownerStakeKeyHash: string = "";
+        
+        const ownerPayout = datum.payouts.find((p) => 
+            "PubKeyCredential" in p.address.paymentCredential && p.address.paymentCredential.PubKeyCredential.pubKeyHash === datum.owner
         );
 
+        if (ownerPayout) {
+            ownerStakeKeyHash = (ownerPayout.address.stakeCredential?.credential as typeof PubKeyCredential).PubKeyCredential.pubKeyHash;
+        }
+
+        const ownerAddress = converter("addr").toBech32("01" + ownerPubKeyHash + ownerStakeKeyHash);
+
         const newListings: NewListing[] = [];
-        for (const assetNameOnChain of Object.keys(out.value[TRACKED_POLICY])) {
+        for (const assetNameOnChain of Object.keys(out.value[this.policy])) {
             const assetNameHex = assetNameOnChain.replace("000de140", "");
             const assetName = new TextDecoder("utf-8").decode(decodeHex(assetNameHex));
 
@@ -101,7 +109,7 @@ export default class Service {
                 assetName,
                 assetNameHex,
                 assetNameOnChain,
-                assetPolicyId: TRACKED_POLICY,
+                assetPolicyId: this.policy,
                 txHash: tx.id,
                 owner: ownerAddress,
                 timestamp: this.getTimestamp(block.slot),
@@ -201,7 +209,7 @@ export default class Service {
                     assetName: assetOffer.assetName,
                     assetNameHex: assetOffer.assetNameHex,
                     assetNameOnChain: assetOffer.assetNameOnChain,
-                    assetPolicyId: TRACKED_POLICY,
+                    assetPolicyId: this.policy,
                     txHash: tx.id,
                     seller: seller,
                     buyer: assetOffer.owner,
@@ -219,7 +227,7 @@ export default class Service {
             if (collectionOffer) {
                 console.log("accept collection offer:", collectionOffer.amount);
 
-                const assetNameOnChain = Object.keys(out.value[TRACKED_POLICY])[0];
+                const assetNameOnChain = Object.keys(out.value[this.policy])[0];
                 const assetNameHex = assetNameOnChain.replace("000de140", "");
                 const assetName = new TextDecoder("utf-8").decode(decodeHex(assetNameHex));
 
@@ -232,7 +240,7 @@ export default class Service {
                     assetName,
                     assetNameHex,
                     assetNameOnChain,
-                    assetPolicyId: TRACKED_POLICY,
+                    assetPolicyId: this.policy,
                     txHash: tx.id,
                     seller: seller,
                     buyer: collectionOffer.owner,
@@ -289,7 +297,7 @@ export default class Service {
                         assetName: listing.assetName,
                         assetNameHex: listing.assetNameHex,
                         assetNameOnChain: listing.assetNameOnChain,
-                        assetPolicyId: TRACKED_POLICY,
+                        assetPolicyId: this.policy,
                         txHash: tx.id,
                         seller: listing.owner,
                         buyer: out.address,
@@ -316,12 +324,12 @@ export default class Service {
         const metadataCborHex = this.retrieveMetadata(tx.metadata);
 
         const datum = Data.from<typeof JpgOfferDatum>(metadataCborHex, JpgOfferDatum);
-        const offer = datum.payouts.find((p) => p.value.get(TRACKED_POLICY));
+        const offer = datum.payouts.find((p) => p.value.get(this.policy));
 
         if (offer) {
             const amount = out.value.ada.lovelace;
 
-            if (offer.value.get(TRACKED_POLICY)!.map.size) {
+            if (offer.value.get(this.policy)!.map.size) {
                 // asset offers
 
                 let existingAssetOffer;
@@ -345,7 +353,7 @@ export default class Service {
                         assetName: existingAssetOffer.assetName,
                         assetNameHex: existingAssetOffer.assetNameHex,
                         assetNameOnChain: existingAssetOffer.assetNameOnChain,
-                        assetPolicyId: TRACKED_POLICY,
+                        assetPolicyId: this.policy,
                         txHash: tx.id,
                         timestamp: this.getTimestamp(block.slot),
                         owner: datum.owner,
@@ -354,7 +362,7 @@ export default class Service {
                         blockSlot: block.slot,
                     });
                 } else {
-                    const assetNameOnChain = offer.value.get(TRACKED_POLICY)!.map.keys().next().value!;
+                    const assetNameOnChain = offer.value.get(this.policy)!.map.keys().next().value!;
                     const assetNameHex = assetNameOnChain.replace("000de140", "");
                     const assetName = new TextDecoder("utf-8").decode(decodeHex(assetNameHex));
 
@@ -365,7 +373,7 @@ export default class Service {
                         assetName,
                         assetNameHex,
                         assetNameOnChain,
-                        assetPolicyId: TRACKED_POLICY,
+                        assetPolicyId: this.policy,
                         txHash: tx.id,
                         timestamp: this.getTimestamp(block.slot),
                         owner: datum.owner,
@@ -395,7 +403,7 @@ export default class Service {
 
                     await this.db.createCollectionOffer({
                         amount: amount.toString(),
-                        policyId: TRACKED_POLICY,
+                        policyId: this.policy,
                         txHash: tx.id,
                         timestamp: this.getTimestamp(block.slot),
                         owner: datum.owner,
@@ -408,7 +416,7 @@ export default class Service {
 
                     await this.db.createCollectionOffer({
                         amount: amount.toString(),
-                        policyId: TRACKED_POLICY,
+                        policyId: this.policy,
                         txHash: tx.id,
                         timestamp: this.getTimestamp(block.slot),
                         owner: datum.owner,
@@ -425,10 +433,10 @@ export default class Service {
         if (!tx.mint)
             return
 
-        for (const key in tx.mint[TRACKED_POLICY]) {
+        for (const key in tx.mint[this.policy]) {
             const assetNameHex = key.replace("000de140", "");
             const assetName = new TextDecoder("utf-8").decode(decodeHex(assetNameHex));
-            const amount = tx.mint[TRACKED_POLICY][key];
+            const amount = tx.mint[this.policy][key];
             
             if (amount > 0n) {
                 console.log(`minted! ${assetName}, ${amount}`)

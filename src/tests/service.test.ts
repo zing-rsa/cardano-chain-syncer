@@ -291,6 +291,15 @@ Deno.test("Burns assets", async () => {
         assertEquals(data.mints[0].type, "burn");
     })
 
+Deno.test("Owner is script credential", async () => {
+        // ada handle owner is script credential
+        const { block, service } = await initialize("3cbf95fe08d83df6d0a7bf8fed1e4e06d66c0c0e30d393bff95aeeddfe3e5e81", true, "f0ff48bbb7bbe9d59a40f1ce90e9e9d0ff5002ec48f232b49ca0fb9a"); // ada handle
+    
+        await service.classify(block);
+    
+        assertEquals(data.listings.length, 1);
+    })
+
 // mock db
 let data: data;
 
@@ -304,10 +313,10 @@ type data = {
     mints: Mint[],
 };
 
-async function initialize(blockId: string, clear?: boolean) {
+async function initialize(blockId: string, clear?: boolean, policy?: string) {
     const blockData = await Deno.readTextFile(`./src/tests/blocks/${blockId}.json`);
     const block: BlockPraos = JSON.parse(blockData, replacer);
-    const service = new Service(db, true);
+    const service = new Service(db, true, policy);
 
     if (clear === undefined || clear === true) {
         data = {
