@@ -1,6 +1,6 @@
 {
     "tasks": {
-        "local": "./run_local_db_docker.sh && deno run -A src/main.ts",
+        "local": "./run_local_db_docker.sh && deno -A --node-modules-dir npm:drizzle-kit migrate && deno run -A src/main.ts",
         "test": "deno test -A .",
 
         "migrate": "deno run -A --node-modules-dir npm:drizzle-kit migrate",

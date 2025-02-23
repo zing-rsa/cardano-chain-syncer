@@ -1,4 +1,19 @@
-import { AssetOffer, BundledListing, BundleSale, CollectionOffer, Listing, Mint, NewAssetOffer, NewBundledListing, NewBundleSale, NewCollectionOffer, NewListing, NewMint, NewSale, Sale } from "../db/schema.ts";
+import {
+    AssetOffer,
+    BundledListing,
+    BundleSale,
+    CollectionOffer,
+    Listing,
+    Mint,
+    NewAssetOffer,
+    NewBundledListing,
+    NewBundleSale,
+    NewCollectionOffer,
+    NewListing,
+    NewMint,
+    NewSale,
+    Sale,
+} from "../db/schema.ts";
 import Database from "../db/db.ts";
 import Service from "../service.ts";
 import { BlockPraos } from "@cardano-ogmios/schema";
@@ -268,7 +283,7 @@ Deno.test("Accept asset offer", async () => {
 });
 
 Deno.test("Mints assets", async () => {
-// asset offer
+    // asset offer
     const { block, service } = await initialize("d2775d310ac273feb785c764be824527628aec1439ea3d57d09827f73148571b_artificial");
 
     await service.classify(block);
@@ -276,29 +291,38 @@ Deno.test("Mints assets", async () => {
     assertEquals(data.listings.length, 0);
     assertEquals(data.sales.length, 0);
     assertEquals(data.mints.length, 2);
-    
-})
+});
 
 Deno.test("Burns assets", async () => {
     // asset offer
-        const { block, service } = await initialize("d2775d310ac273feb785c764be824527628aec1439ea3d57d09827f73148571b_artificial2");
-    
-        await service.classify(block);
-    
-        assertEquals(data.listings.length, 0);
-        assertEquals(data.sales.length, 0);
-        assertEquals(data.mints.length, 1);
-        assertEquals(data.mints[0].type, "burn");
-    })
+    const { block, service } = await initialize("d2775d310ac273feb785c764be824527628aec1439ea3d57d09827f73148571b_artificial2");
+
+    await service.classify(block);
+
+    assertEquals(data.listings.length, 0);
+    assertEquals(data.sales.length, 0);
+    assertEquals(data.mints.length, 1);
+    assertEquals(data.mints[0].type, "burn");
+});
 
 Deno.test("Owner is script credential", async () => {
-        // ada handle owner is script credential
-        const { block, service } = await initialize("3cbf95fe08d83df6d0a7bf8fed1e4e06d66c0c0e30d393bff95aeeddfe3e5e81", true, "f0ff48bbb7bbe9d59a40f1ce90e9e9d0ff5002ec48f232b49ca0fb9a"); // ada handle
-    
-        await service.classify(block);
-    
-        assertEquals(data.listings.length, 1);
-    })
+    // ada handle owner is script credential
+    const { block, service } = await initialize("3cbf95fe08d83df6d0a7bf8fed1e4e06d66c0c0e30d393bff95aeeddfe3e5e81", true, "f0ff48bbb7bbe9d59a40f1ce90e9e9d0ff5002ec48f232b49ca0fb9a"); // ada handle
+
+    await service.classify(block);
+
+    assertEquals(data.listings.length, 1);
+});
+
+Deno.test("Tx with no relevant metadata", async () => {
+    // assets sent to offers address without correct metadata
+    const { block, service } = await initialize("9a3729c4d0c8d2a3a9f7d8441eabff2cf8c6a161f43a79af03b450fe05e4ea17", true, "f0ff48bbb7bbe9d59a40f1ce90e9e9d0ff5002ec48f232b49ca0fb9a"); // ada handle
+
+    await service.classify(block);
+
+    assertEquals(data.assetOffers.length, 0)
+    assertEquals(data.collectionOffers.length, 0)
+});
 
 // mock db
 let data: data;
@@ -310,7 +334,7 @@ type data = {
     collectionOffers: CollectionOffer[];
     bundledListings: BundledListing[];
     bundleSales: BundleSale[];
-    mints: Mint[],
+    mints: Mint[];
 };
 
 async function initialize(blockId: string, clear?: boolean, policy?: string) {
@@ -326,7 +350,7 @@ async function initialize(blockId: string, clear?: boolean, policy?: string) {
             collectionOffers: [],
             bundledListings: [],
             bundleSales: [],
-            mints: []
+            mints: [],
         };
     }
 
@@ -463,6 +487,6 @@ const db: Database = {
             data.mints.push(entity);
 
             resolve(entity);
-        })
-    }
+        });
+    },
 };

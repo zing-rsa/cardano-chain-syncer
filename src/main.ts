@@ -12,8 +12,8 @@ const JPG_V2_CONTRACT_CREATED = {
 };
 
 const ARB_TIME = {
-    id: "2d0784ddd6b000edf3678d04c8c3068098dbc182b3e238e71fe41e19b1b2a7cd",
-    slot: 147909592,
+    id: "4d2b708cc7600b5dac0fd837caa3c4aea83874dcd2ebfa38e5ac9a5fe7457d68",
+    slot: 125338747,
 };
 
 let service: Service;

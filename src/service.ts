@@ -68,15 +68,15 @@ export default class Service {
     async handleAssetsSentToAddress(tx: Transaction, out: TransactionOutput, block: BlockPraos, utxoIdx: number, isLegacyContract: boolean): Promise<void> {
         if (this.log) console.log("assets sent to address. tx:", tx.id, out.address);
 
-        if (!tx.metadata) {
-            console.log("tx has no metadata. tx_id=", tx.id);
+        const metadataCborHex = this.retrieveMetadata(tx.metadata);
+
+        if (!metadataCborHex) {
+            console.log("tx has no relevant metadata. tx_id=", tx.id);
             return;
         }
 
         let amount: bigint = 0n;
         let datum: typeof JpgAskV1Datum | typeof JpgV2Datum;
-
-        const metadataCborHex = this.retrieveMetadata(tx.metadata);
 
         if (isLegacyContract) {
             datum = Data.from<typeof JpgV2Datum>(metadataCborHex, JpgV2Datum);
@@ -316,12 +316,12 @@ export default class Service {
     async handleAdaSentToOfferAddress(tx: Transaction, out: TransactionOutput, block: BlockPraos, utxoIdx: number): Promise<void> {
         if (this.log) console.log("assets sent to offers address. tx:", tx.id);
 
-        if (!tx.metadata) {
-            console.log("tx has no metadata. tx_id=", tx.id);
+        const metadataCborHex = this.retrieveMetadata(tx.metadata);
+
+        if (!metadataCborHex) {
+            console.log("tx has no relevant metadata. tx_id=", tx.id);
             return;
         }
-
-        const metadataCborHex = this.retrieveMetadata(tx.metadata);
 
         const datum = Data.from<typeof JpgOfferDatum>(metadataCborHex, JpgOfferDatum);
         const offer = datum.payouts.find((p) => p.value.get(this.policy));
@@ -462,13 +462,16 @@ export default class Service {
         }
     }
 
-    retrieveMetadata(metadata: Metadata) {
+    retrieveMetadata(metadata?: Metadata) {
         let result = "";
+
+        if (!metadata)
+            return result;
 
         for (const key in metadata.labels) {
             const label = metadata.labels[key];
             const value = label.json?.toString();
-            if (value && key !== "30") {
+            if (value && parseInt(key) >= 50 && parseInt(key) < 70) {
                 result += value;
             }
         }
