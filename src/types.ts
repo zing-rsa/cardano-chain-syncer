@@ -1,5 +1,11 @@
 import { Data } from "jsr:@spacebudz/lucid";
 
+// misc
+export enum JpgContractVersion {
+    V1, V2, V3
+}
+
+
 // ----------------------------------------------------------
 // generic
 export const PubKeyCredential = { PubKeyCredential: { pubKeyHash: Data.Bytes() } };

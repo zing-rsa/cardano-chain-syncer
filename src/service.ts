@@ -2,14 +2,15 @@ import { BlockPraos, Metadata, Transaction, TransactionOutput } from "@cardano-o
 import { Data } from "jsr:@spacebudz/lucid";
 import { decodeHex } from "jsr:@std/encoding/hex";
 
-import { JpgAskV1Datum, JpgOfferDatum, JpgV2Datum, PubKeyCredential } from "./types.ts";
+import { JpgAskV1Datum, JpgContractVersion, JpgOfferDatum, JpgV2Datum, PubKeyCredential } from "./types.ts";
 import { NewListing } from "./db/schema.ts";
 import { bigIntAbs, converter } from "./util.ts";
 import Database from "./db/db.ts";
 import db from "./db/db.ts";
 
-const JPG_ASK_V1_ADDRESS = "addr1x8rjw3pawl0kelu4mj3c8x20fsczf5pl744s9mxz9v8n7efvjel5h55fgjcxgchp830r7h2l5msrlpt8262r3nvr8ekstg4qrx";
+const JPG_V1_ADDRESS = 'addr1w999n67e86jn6xal07pzxtrmqynspgx0fwmcmpua4wc6yzsxpljz3'
 const JPG_V2_ADDRESS = "addr1zxgx3far7qygq0k6epa0zcvcvrevmn0ypsnfsue94nsn3tvpw288a4x0xf8pxgcntelxmyclq83s0ykeehchz2wtspks905plm";
+const JPG_v3_ADDRESS = "addr1x8rjw3pawl0kelu4mj3c8x20fsczf5pl744s9mxz9v8n7efvjel5h55fgjcxgchp830r7h2l5msrlpt8262r3nvr8ekstg4qrx";
 const TRACKED_POLICY = "4523c5e21d409b81c95b45b0aea275b8ea1406e6cafea5583b9f8a5f"; // spacebudz
 const JPG_OFFERS_ADDRESS = "addr1xxgx3far7qygq0k6epa0zcvcvrevmn0ypsnfsue94nsn3tfvjel5h55fgjcxgchp830r7h2l5msrlpt8262r3nvr8eks2utwdd";
 const SHELLY_START_EPOCH = 1596491091;
@@ -42,12 +43,15 @@ export default class Service {
 
                 for (const [utxoIdx, out] of tx.outputs.entries()) {
                     if (out.value[this.policy]) {
-                        if (out.address === JPG_V2_ADDRESS) {
+                        if (out.address === JPG_V1_ADDRESS) {
                             // listing or price update
-                            await this.handleAssetsSentToAddress(tx, out, block, utxoIdx, true);
-                        } else if (out.address === JPG_ASK_V1_ADDRESS) {
+                            await this.handleAssetsSentToAddress(tx, out, block, utxoIdx, JpgContractVersion.V1);
+                        } else if (out.address === JPG_V2_ADDRESS) {
                             // listing or price update
-                            await this.handleAssetsSentToAddress(tx, out, block, utxoIdx, false);
+                            await this.handleAssetsSentToAddress(tx, out, block, utxoIdx, JpgContractVersion.V2);
+                        } else if (out.address === JPG_v3_ADDRESS) {
+                            // listing or price update
+                            await this.handleAssetsSentToAddress(tx, out, block, utxoIdx, JpgContractVersion.V3);
                         } else {
                             // delist or sale
                             await this.handleAssetsSentFromAddress(tx, out, block, utxoIdx);
@@ -65,40 +69,55 @@ export default class Service {
         }
     }
 
-    async handleAssetsSentToAddress(tx: Transaction, out: TransactionOutput, block: BlockPraos, utxoIdx: number, isLegacyContract: boolean): Promise<void> {
+    async handleAssetsSentToAddress(tx: Transaction, out: TransactionOutput, block: BlockPraos, utxoIdx: number, contractVersion: JpgContractVersion): Promise<void> {
         if (this.log) console.log("assets sent to address. tx:", tx.id, out.address);
 
-        const metadataCborHex = this.retrieveMetadata(tx.metadata);
-
-        if (!metadataCborHex) {
-            console.log("tx has no relevant metadata. tx_id=", tx.id);
-            return;
-        }
-
         let amount: bigint = 0n;
-        let datum: typeof JpgAskV1Datum | typeof JpgV2Datum;
+        let ownerAddress: string = "";
+        
+        if (contractVersion === JpgContractVersion.V2 || contractVersion === JpgContractVersion.V3) {
+            let datum: typeof JpgAskV1Datum | typeof JpgV2Datum;
 
-        if (isLegacyContract) {
-            datum = Data.from<typeof JpgV2Datum>(metadataCborHex, JpgV2Datum);
-            amount = datum.payouts.map((p) => p.value.get("")?.map.get("")!).reduce((c, n) => c + n); // sum all payouts
-        } else {
-            datum = Data.from<typeof JpgAskV1Datum>(metadataCborHex, JpgAskV1Datum);
-            amount = (datum.payouts.map((p) => p.lovelace).reduce((c, n) => c + n)) / 2n * 100n / 49n; // add marketplace fee
+            const metadataCborHex = this.retrieveMetadata(tx.metadata);
+
+            if (!metadataCborHex) {
+                console.log("tx has no relevant metadata. tx_id=", tx.id);
+                return;
+            }
+    
+            if (contractVersion === JpgContractVersion.V2) {
+                datum = Data.from<typeof JpgV2Datum>(metadataCborHex, JpgV2Datum);
+                amount = datum.payouts.map((p) => p.value.get("")?.map.get("")!).reduce((c, n) => c + n); // sum all payouts
+            } else {
+                datum = Data.from<typeof JpgAskV1Datum>(metadataCborHex, JpgAskV1Datum);
+                amount = (datum.payouts.map((p) => p.lovelace).reduce((c, n) => c + n)) / 2n * 100n / 49n; // add marketplace fee
+            }
+    
+            const ownerPubKeyHash: string = datum.owner;
+            let ownerStakeKeyHash: string = "";
+            
+            const ownerPayout = datum.payouts.find((p) => 
+                "PubKeyCredential" in p.address.paymentCredential && p.address.paymentCredential.PubKeyCredential.pubKeyHash === datum.owner
+            );
+    
+            if (ownerPayout) {
+                ownerStakeKeyHash = (ownerPayout.address.stakeCredential?.credential as typeof PubKeyCredential).PubKeyCredential.pubKeyHash;
+            }
+    
+            ownerAddress = converter("addr").toBech32("01" + ownerPubKeyHash + ownerStakeKeyHash);
+
+        } else if (contractVersion === JpgContractVersion.V1) {
+            if (!tx.metadata?.labels["6"].json || !tx.metadata?.labels["7"].json) 
+                throw new Error(`Couldn't locate owner address in V1 jpg contract listing metadata. metadata=${tx.metadata}`)
+            
+            ownerAddress = tx.metadata?.labels["6"].json.toString() + tx.metadata?.labels["7"].json.toString();
+            
+            if (!tx.metadata?.labels["1"].json || isNaN(Number(BigInt(tx.metadata?.labels["1"].json.toString())))) 
+                throw new Error(`Couldn't locate amount in V1 jpg contract listing metadata. metadata=${tx.metadata}`)
+
+            amount = BigInt(tx.metadata?.labels["1"].json.toString())
         }
         
-        const ownerPubKeyHash: string = datum.owner;
-        let ownerStakeKeyHash: string = "";
-        
-        const ownerPayout = datum.payouts.find((p) => 
-            "PubKeyCredential" in p.address.paymentCredential && p.address.paymentCredential.PubKeyCredential.pubKeyHash === datum.owner
-        );
-
-        if (ownerPayout) {
-            ownerStakeKeyHash = (ownerPayout.address.stakeCredential?.credential as typeof PubKeyCredential).PubKeyCredential.pubKeyHash;
-        }
-
-        const ownerAddress = converter("addr").toBech32("01" + ownerPubKeyHash + ownerStakeKeyHash);
-
         const newListings: NewListing[] = [];
         for (const assetNameOnChain of Object.keys(out.value[this.policy])) {
             const assetNameHex = assetNameOnChain.replace("000de140", "");
